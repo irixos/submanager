@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SubManagerLite.Application.Entities;
 
-namespace SubManagerLite.Data.EfConfigs;
+namespace SubManagerLite.Infrastructure.EfConfigs;
 
 public class VideoConfiguration : IEntityTypeConfiguration<Video>
 {

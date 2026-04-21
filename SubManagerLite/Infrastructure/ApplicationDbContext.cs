@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 
-namespace SubManagerLite.Data;
+namespace SubManagerLite.Infrastructure;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {

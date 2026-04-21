@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 
-namespace SubManagerLite.Data.Repositories;
+namespace SubManagerLite.Infrastructure.Repositories;
 
 public sealed class ChannelRepository(ApplicationDbContext db)
 {
