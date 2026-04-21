@@ -1,4 +1,4 @@
-namespace SubManagerLite.Entities;
+namespace SubManagerLite.Application.Entities;
 
 public class Channel
 {

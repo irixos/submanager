@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SubManagerLite.Entities;
+using SubManagerLite.Application.Entities;
 
 namespace SubManagerLite.Data.EfConfigs;
 

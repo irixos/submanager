@@ -1,6 +1,6 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Entities;
+using SubManagerLite.Application.Entities;
 
 namespace SubManagerLite.Data;
 
