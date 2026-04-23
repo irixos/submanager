@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using SubManagerLite.Application.Features.Channels.Interfaces;
+using SubManagerLite.Application.Features.Channels.Services;
+using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +13,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite")));
 
+// Application Core
+builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
