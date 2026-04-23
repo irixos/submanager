@@ -5,6 +5,7 @@ using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 using SubManagerLite.Infrastructure.Integrations;
 using SubManagerLite.Infrastructure.Repositories;
+using SubManagerLite.Web;
 using YoutubeExplode;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite")));
+
+builder.Services.AddValidation();
 
 // TODO: Move this out later
 // Infrastructure
@@ -38,5 +41,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Endpoints
+app.MapGroup("/channels")
+    .MapChannelsApi();
 
 app.Run();
