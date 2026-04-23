@@ -20,14 +20,6 @@ public class ChannelConfiguration : IEntityTypeConfiguration<Channel>
         builder
             .Property(x => x.Name)
             .HasMaxLength(100);
-
-        builder
-            .Property(x => x.Handle)
-            .HasMaxLength(30);
-        
-        builder
-            .Property(x => x.Description)
-            .HasMaxLength(5000);
         
         builder
             .Property(x => x.ThumbnailUrl)

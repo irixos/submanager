@@ -11,12 +11,6 @@ public class Channel
 
     public string Name { get; set; } = string.Empty;
     
-    public string? Handle { get; set; }
-    
-    public string? Description { get; set; }
-    
-    public long? SubscriberCount { get; set; }
-
     public string? ThumbnailUrl { get; set; }
 
     public DateTimeOffset AddedDate { get; set; }
