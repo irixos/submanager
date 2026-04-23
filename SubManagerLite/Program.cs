@@ -4,6 +4,7 @@ using SubManagerLite.Application.Features.Channels.Services;
 using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 using SubManagerLite.Infrastructure.Integrations;
+using SubManagerLite.Infrastructure.Repositories;
 using YoutubeExplode;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Infrastructure
 builder.Services.AddSingleton<YoutubeClient>();
 builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
+builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
+
 // Application Core
 builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
 var app = builder.Build();

@@ -1,13 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
+using SubManagerLite.Application.Interfaces;
 
 namespace SubManagerLite.Infrastructure.Repositories;
 
-public sealed class ChannelRepository(ApplicationDbContext db)
+public sealed class ChannelRepository(ApplicationDbContext db) : IChannelRepository
 {
     public Task<List<Channel>> GetAllAsync(CancellationToken ct)
     {
         return db.Channels.ToListAsync(ct);
+    }
+
+    public async Task<Channel?> GetAsync(int id, CancellationToken ct)
+    {
+        return await db.Channels.FindAsync([id], ct);
     }
     
     public Task AddAsync(Channel channel, CancellationToken ct)
