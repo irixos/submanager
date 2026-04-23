@@ -24,6 +24,8 @@ builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 
 // Application Core
 builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
+builder.Services.AddScoped<IChannelService, ChannelService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
