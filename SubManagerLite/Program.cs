@@ -24,6 +24,7 @@ builder.Services.AddValidation();
 builder.Services.AddSingleton<YoutubeClient>();
 builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
 builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 // Application Core
 builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
