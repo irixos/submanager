@@ -22,6 +22,20 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
         
         return response;
     }
+    public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
+    {
+        var channel = await categoryRepository.GetAsync(id, ct);
+        if (channel == null) return null;
+
+        var response = new CategoryResponse
+        {
+            Id = channel.Id,
+            Name = channel.Name,
+            Color = channel.Color
+        };
+
+        return response;
+    }
     
     public async Task<CategoryResponse?> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {

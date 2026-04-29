@@ -15,6 +15,18 @@ public static class CategoryEndpoints
                 return TypedResults.Ok(response);
             });
         
+        group.MapGet("/{id:int}",
+            async Task<Results<Ok<CategoryResponse>, NotFound<string>>>(
+                int id,
+                ICategoryService categoryService,
+                CancellationToken ct) =>
+            {
+                var response = await categoryService.GetAsync(id, ct);
+                return response is not null
+                    ? TypedResults.Ok(response)
+                    : TypedResults.NotFound("Category not found");
+            });
+        
         group.MapPost("/",
             async Task<Results<Created<CategoryResponse>, Conflict<string>>>(
                 CreateCategoryRequest request, 
