@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
-using SubManagerLite.Application.Features.Channels;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
-using SubManagerLite.Application.Features.Channels.Services;
 
 namespace SubManagerLite.Web;
 
