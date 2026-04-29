@@ -4,11 +4,13 @@ using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Infrastructure.Repositories;
 
 namespace SubManagerLite.Application.Features.Channels.Services;
 
 public sealed class ChannelService(
     IChannelRepository channelRepository,
+    ICategoryRepository categoryRepository,
     IYoutubeChannelRefService youtubeChannelRefService,
     IYoutubeMetadataProvider youtubeMetadataProvider) : IChannelService
 {
@@ -84,7 +86,26 @@ public sealed class ChannelService(
 
     public async Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        var channel = await channelRepository.GetAsync(id, ct);
+        if (channel == null) return false;
+
+        if (request.CategoryIds is not null)
+        {
+            var newCategories = await categoryRepository.GetByIdsAsync(request.CategoryIds, ct);
+            
+            if (newCategories.Count != request.CategoryIds.Distinct().Count())
+                throw new ArgumentException("Invalid category ids");
+            
+            channel.Categories.Clear();
+            
+            foreach (var category in newCategories)
+                channel.Categories.Add(category);
+        }
+        else 
+            channel.Categories.Clear();
+
+        await channelRepository.UpdateAsync(channel, ct);
+        return true;
     }
 
     public async Task<bool> UpdateStatusAsync(int id, UpdateChannelStatusRequest request, CancellationToken ct)
