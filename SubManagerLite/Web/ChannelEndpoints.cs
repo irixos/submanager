@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
+using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 
@@ -13,6 +14,18 @@ public static class ChannelEndpoints
             {
                 var response = await channelService.GetAllAsync(ct);
                 return TypedResults.Ok(response);
+            });
+
+        group.MapGet("/{id:int}",
+            async Task<Results<Ok<ChannelResponse>, NotFound<string>>>(
+                int id,
+                IChannelService channelService, 
+                CancellationToken ct) =>
+            {
+                var response = await channelService.GetAsync(id, ct);
+                return response is not null
+                    ? TypedResults.Ok(response)
+                    : TypedResults.NotFound("Channel not found");
             });
         
         group.MapPost("/",

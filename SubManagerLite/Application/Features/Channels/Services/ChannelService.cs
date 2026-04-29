@@ -40,6 +40,33 @@ public sealed class ChannelService(
         
         return response;
     }
+
+    public async Task<ChannelResponse?> GetAsync(int id, CancellationToken ct)
+    {
+        var channel = await channelRepository.GetAsync(id, ct);
+        if (channel == null) return null;
+
+        var response = new ChannelResponse
+        {
+            Id = channel.Id,
+            YoutubeChannelId = channel.YoutubeChannelId,
+            Name = channel.Name,
+            ThumbnailUrl = channel.ThumbnailUrl,
+            AddedDate = channel.AddedDate,
+            LastCheckedDate = channel.LastCheckedDate,
+            IsActive = channel.IsActive,
+            Categories = channel.Categories
+                .Select(category => new CategoryResponse
+                {
+                    Id = category.Id,
+                    Name = category.Name,
+                    Color = category.Color
+                })
+                .ToList()
+        };
+
+        return response;
+    }
     
     public async Task<ChannelResponse?> CreateAsync(CreateChannelRequest request, CancellationToken ct)
     {
