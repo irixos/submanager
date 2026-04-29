@@ -44,7 +44,7 @@ public sealed class ChannelService(
     public async Task<ChannelResponse?> GetAsync(int id, CancellationToken ct)
     {
         var channel = await channelRepository.GetAsync(id, ct);
-        if (channel == null) return null;
+        if (channel is null) return null;
 
         var response = new ChannelResponse
         {
@@ -114,7 +114,7 @@ public sealed class ChannelService(
     public async Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct)
     {
         var channel = await channelRepository.GetAsync(id, ct);
-        if (channel == null) return false;
+        if (channel is null) return false;
 
         if (request.CategoryIds is not null)
         {
@@ -138,7 +138,7 @@ public sealed class ChannelService(
     public async Task<bool> UpdateStatusAsync(int id, UpdateChannelStatusRequest request, CancellationToken ct)
     {
         var channel = await channelRepository.GetAsync(id, ct);
-        if (channel == null) return false;
+        if (channel is null) return false;
          
         channel.IsActive = request.IsActive;
         await channelRepository.UpdateAsync(channel, ct);
@@ -148,7 +148,7 @@ public sealed class ChannelService(
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
         var channel = await channelRepository.GetAsync(id, ct);
-        if (channel == null) return false;
+        if (channel is null) return false;
          
         await channelRepository.DeleteAsync(channel, ct);
         return true;

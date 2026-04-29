@@ -25,7 +25,7 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
     public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
     {
         var channel = await categoryRepository.GetAsync(id, ct);
-        if (channel == null) return null;
+        if (channel is null) return null;
 
         var response = new CategoryResponse
         {
@@ -68,7 +68,7 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
     public async Task<bool> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct)
     {
         var category = await categoryRepository.GetAsync(id, ct);
-        if (category == null) return false;
+        if (category is null) return false;
         
         if (request.Name is not null)
             category.Name = request.Name;
@@ -84,7 +84,7 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
         var category = await categoryRepository.GetAsync(id, ct);
-        if (category == null) return false;
+        if (category is null) return false;
          
         await categoryRepository.DeleteAsync(category, ct);
         return true;
