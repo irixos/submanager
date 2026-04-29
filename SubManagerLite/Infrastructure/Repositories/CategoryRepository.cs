@@ -15,6 +15,13 @@ public sealed class CategoryRepository(ApplicationDbContext db) : ICategoryRepos
     {
         return await db.Categories.FindAsync([id], ct);
     }
+
+    public async Task<List<Category>> GetByIdsAsync(List<int> ids, CancellationToken ct)
+    {
+        return await db.Categories
+            .Where(c => ids.Contains(c.Id))
+            .ToListAsync(ct);
+    }
     
     public Task AddAsync(Category category, CancellationToken ct)
     {
