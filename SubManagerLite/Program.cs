@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using SubManagerLite.Application.Features.Categories.Interfaces;
+using SubManagerLite.Application.Features.Categories.Services;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Services;
 using SubManagerLite.Application.Interfaces;
@@ -29,6 +31,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 // Application Core
 builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
 builder.Services.AddScoped<IChannelService, ChannelService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 var app = builder.Build();
 
