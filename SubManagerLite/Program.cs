@@ -50,4 +50,7 @@ app.UseHttpsRedirection();
 app.MapGroup("/channels")
     .MapChannelsApi();
 
+app.MapGroup("/categories")
+    .MapCategoriesApi();
+
 app.Run();
