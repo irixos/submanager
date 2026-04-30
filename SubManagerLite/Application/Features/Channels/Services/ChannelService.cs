@@ -4,7 +4,6 @@ using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 using SubManagerLite.Application.Interfaces;
-using SubManagerLite.Infrastructure.Repositories;
 
 namespace SubManagerLite.Application.Features.Channels.Services;
 
@@ -18,25 +17,7 @@ public sealed class ChannelService(
     {
         var channels = await channelRepository.GetAllAsync(ct);
         
-        var response = channels.Select(channel => new ChannelResponse
-            {
-                Id = channel.Id,
-                YoutubeChannelId = channel.YoutubeChannelId,
-                Name = channel.Name,
-                ThumbnailUrl = channel.ThumbnailUrl,
-                AddedDate = channel.AddedDate,
-                LastCheckedDate = channel.LastCheckedDate,
-                IsActive = channel.IsActive,
-                Categories = channel.Categories
-                    .Select(category => new CategoryResponse
-                    {
-                        Id = category.Id,
-                        Name = category.Name,
-                        Color = category.Color
-                    })
-                    .ToList()
-            })
-            .ToList();
+        var response = channels.Select(MapToChannelResponse).ToList();
         
         return response;
     }
@@ -46,24 +27,7 @@ public sealed class ChannelService(
         var channel = await channelRepository.GetAsync(id, ct);
         if (channel is null) return null;
 
-        var response = new ChannelResponse
-        {
-            Id = channel.Id,
-            YoutubeChannelId = channel.YoutubeChannelId,
-            Name = channel.Name,
-            ThumbnailUrl = channel.ThumbnailUrl,
-            AddedDate = channel.AddedDate,
-            LastCheckedDate = channel.LastCheckedDate,
-            IsActive = channel.IsActive,
-            Categories = channel.Categories
-                .Select(category => new CategoryResponse
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    Color = category.Color
-                })
-                .ToList()
-        };
+        var response = MapToChannelResponse(channel);
 
         return response;
     }
@@ -89,24 +53,7 @@ public sealed class ChannelService(
             return null;
         }
 
-        var response = new ChannelResponse
-        {
-            Id = channel.Id,
-            YoutubeChannelId = channel.YoutubeChannelId,
-            Name = channel.Name,
-            ThumbnailUrl = channel.ThumbnailUrl,
-            AddedDate = channel.AddedDate,
-            LastCheckedDate = channel.LastCheckedDate,
-            IsActive = channel.IsActive,
-            Categories = channel.Categories
-                .Select(category => new CategoryResponse
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    Color = category.Color
-                })
-                .ToList()
-        };
+        var response = MapToChannelResponse(channel);
         
         return response;
     }
@@ -152,5 +99,27 @@ public sealed class ChannelService(
          
         await channelRepository.DeleteAsync(channel, ct);
         return true;
+    }
+    
+    private static ChannelResponse MapToChannelResponse(Channel channel)
+    {
+        return new ChannelResponse
+        {
+            Id = channel.Id,
+            YoutubeChannelId = channel.YoutubeChannelId,
+            Name = channel.Name,
+            ThumbnailUrl = channel.ThumbnailUrl,
+            AddedDate = channel.AddedDate,
+            LastCheckedDate = channel.LastCheckedDate,
+            IsActive = channel.IsActive,
+            Categories = channel.Categories
+                .Select(category => new CategoryResponse
+                {
+                    Id = category.Id,
+                    Name = category.Name,
+                    Color = category.Color
+                })
+                .ToList()
+        };
     }
 }
