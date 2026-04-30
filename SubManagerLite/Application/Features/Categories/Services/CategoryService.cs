@@ -12,27 +12,17 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
     {
         var categories = await categoryRepository.GetAllAsync(ct);
         
-        var response = categories.Select(category => new CategoryResponse
-            {
-                Id = category.Id,
-                Name = category.Name,
-                Color = category.Color
-            })
-            .ToList();
+        var response = categories.Select(MapToCategoryResponse).ToList();
         
         return response;
     }
+    
     public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
     {
         var channel = await categoryRepository.GetAsync(id, ct);
         if (channel is null) return null;
 
-        var response = new CategoryResponse
-        {
-            Id = channel.Id,
-            Name = channel.Name,
-            Color = channel.Color
-        };
+        var response = MapToCategoryResponse(channel);
 
         return response;
     }
@@ -55,12 +45,7 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
             return null;
         }
 
-        var response = new CategoryResponse
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Color = category.Color
-        };
+        var response = MapToCategoryResponse(category);
         
         return response;
     }
@@ -88,5 +73,15 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
          
         await categoryRepository.DeleteAsync(category, ct);
         return true;
+    }
+
+    private static CategoryResponse MapToCategoryResponse(Category category)
+    {
+        return new CategoryResponse
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Color = category.Color
+        };
     }
 }
