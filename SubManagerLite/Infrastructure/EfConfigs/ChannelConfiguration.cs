@@ -26,8 +26,8 @@ public class ChannelConfiguration : IEntityTypeConfiguration<Channel>
             .HasMaxLength(1000);
         
         builder
-            .Property(x => x.AddedDate)
-            .HasDefaultValueSql("SYSDATETIMEOFFSET()")
+            .Property(c => c.AddedDate)
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedOnAdd();
         
         builder
