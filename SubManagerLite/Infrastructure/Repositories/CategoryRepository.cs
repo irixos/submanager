@@ -11,14 +11,14 @@ public sealed class CategoryRepository(ApplicationDbContext db) : ICategoryRepos
         return db.Categories.ToListAsync(ct);
     }
 
-    public async Task<Category?> GetAsync(int id, CancellationToken ct)
+    public Task<Category?> GetAsync(int id, CancellationToken ct)
     {
-        return await db.Categories.FindAsync([id], ct);
+        return db.Categories.FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
-    public async Task<List<Category>> GetByIdsAsync(List<int> ids, CancellationToken ct)
+    public Task<List<Category>> GetByIdsAsync(List<int> ids, CancellationToken ct)
     {
-        return await db.Categories
+        return db.Categories
             .Where(c => ids.Contains(c.Id))
             .ToListAsync(ct);
     }
