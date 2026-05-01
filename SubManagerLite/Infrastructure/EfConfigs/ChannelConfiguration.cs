@@ -9,20 +9,20 @@ public class ChannelConfiguration : IEntityTypeConfiguration<Channel>
     public void Configure(EntityTypeBuilder<Channel> builder)
     {
         builder
-            .HasMany(x => x.Categories)
-            .WithMany(x => x.Channels)
-            .UsingEntity(x => x.ToTable("ChannelCategory"));
+            .HasMany(c => c.Categories)
+            .WithMany(c => c.Channels)
+            .UsingEntity(e => e.ToTable("ChannelCategory"));
         
         builder
-            .Property(x => x.YoutubeChannelId)
+            .Property(c => c.YoutubeChannelId)
             .HasMaxLength(24);
 
         builder
-            .Property(x => x.Name)
+            .Property(c => c.Name)
             .HasMaxLength(100);
         
         builder
-            .Property(x => x.ThumbnailUrl)
+            .Property(c => c.ThumbnailUrl)
             .HasMaxLength(1000);
         
         builder

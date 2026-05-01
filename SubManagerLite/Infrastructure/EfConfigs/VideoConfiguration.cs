@@ -9,15 +9,15 @@ public class VideoConfiguration : IEntityTypeConfiguration<Video>
     public void Configure(EntityTypeBuilder<Video> builder)
     {
         builder
-            .Property(x => x.YoutubeVideoId)
+            .Property(v => v.YoutubeVideoId)
             .HasMaxLength(15);
         
         builder
-            .Property(x => x.Title)
+            .Property(v => v.Title)
             .HasMaxLength(100);
         
         builder
-            .Property(x => x.ThumbnailUrl)
+            .Property(v => v.ThumbnailUrl)
             .HasMaxLength(1000);
         
         builder
@@ -31,11 +31,11 @@ public class VideoConfiguration : IEntityTypeConfiguration<Video>
             .ValueGeneratedOnAdd();
         
         builder
-            .HasIndex(x => x.YoutubeVideoId)
+            .HasIndex(v => v.YoutubeVideoId)
             .IsUnique();
         
         builder
-            .HasIndex(x => x.ChannelId);
+            .HasIndex(v => v.ChannelId);
     }
     
 }

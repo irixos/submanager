@@ -9,15 +9,15 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
     public void Configure(EntityTypeBuilder<Category> builder)
     {
         builder
-            .Property(x => x.Name)
+            .Property(c => c.Name)
             .HasMaxLength(50);
 
         builder
-            .Property(x => x.Color)
+            .Property(c => c.Color)
             .HasMaxLength(7);
         
         builder
-            .HasIndex(x => x.Name)
+            .HasIndex(c => c.Name)
             .IsUnique();
     }
 }
