@@ -36,6 +36,7 @@ builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>(
 builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
 builder.Services.AddScoped<IChannelService, ChannelService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IVideoService, VideoService>();
 
 var app = builder.Build();
 
