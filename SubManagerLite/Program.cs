@@ -58,4 +58,7 @@ app.MapGroup("/channels")
 app.MapGroup("/categories")
     .MapCategoriesApi();
 
+app.MapGroup("/videos")
+    .MapVideosApi();
+
 app.Run();
