@@ -31,7 +31,11 @@ public class ChannelConfiguration : IEntityTypeConfiguration<Channel>
             .ValueGeneratedOnAdd();
         
         builder
-            .HasIndex(x => x.YoutubeChannelId)
+            .Property(c => c.IsActive)
+            .HasDefaultValue(true);       
+        
+        builder
+            .HasIndex(c => c.YoutubeChannelId)
             .IsUnique();
     }
 }

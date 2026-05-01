@@ -42,6 +42,7 @@ public sealed class ChannelService(
             YoutubeChannelId = channelInfo.YoutubeChannelId,
             Name = channelInfo.Name,
             ThumbnailUrl = channelInfo.ThumbnailUrl,
+            IsActive = true,
         };
 
         try

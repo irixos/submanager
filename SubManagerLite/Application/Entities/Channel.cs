@@ -20,7 +20,7 @@ public class Channel
     /// <summary>
     /// Whether to actively poll this channel for updates
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     // Navigation properties
     public ICollection<Video> Videos { get; set; } = new List<Video>();
