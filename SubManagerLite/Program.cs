@@ -3,6 +3,8 @@ using SubManagerLite.Application.Features.Categories.Interfaces;
 using SubManagerLite.Application.Features.Categories.Services;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Services;
+using SubManagerLite.Application.Features.Videos.Interfaces;
+using SubManagerLite.Application.Features.Videos.Services;
 using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 using SubManagerLite.Infrastructure.Integrations;
@@ -31,6 +33,7 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 
 // Application Core
 builder.Services.AddScoped<IYoutubeChannelRefService, YoutubeChannelRefService>();
+builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
 builder.Services.AddScoped<IChannelService, ChannelService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
