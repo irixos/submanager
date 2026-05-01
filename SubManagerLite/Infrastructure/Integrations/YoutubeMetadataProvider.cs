@@ -1,5 +1,6 @@
 ﻿using SubManagerLite.Application.Features.Channels;
 using SubManagerLite.Application.Features.Channels.Models;
+using SubManagerLite.Application.Features.Videos.Models;
 using SubManagerLite.Application.Interfaces;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -36,5 +37,14 @@ public sealed class YoutubeMetadataProvider(YoutubeClient youtubeClient) : IYout
             Name = channel.Title,
             ThumbnailUrl = channel.Thumbnails.GetWithHighestResolution()?.Url
         };
+    }
+
+    public async Task<YoutubeVideoInfo> GetVideoInfo(string videoId, CancellationToken ct)
+    {
+        var video = await youtubeClient.Videos.GetAsync(videoId, ct);
+        
+        var duration = (int)(video.Duration?.TotalSeconds ?? 0);
+
+        return new YoutubeVideoInfo(duration);
     }
 }
