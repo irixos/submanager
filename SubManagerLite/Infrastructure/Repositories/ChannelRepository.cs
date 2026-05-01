@@ -13,9 +13,16 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
             .ToListAsync(ct);
     }
 
-    public async Task<Channel?> GetAsync(int id, CancellationToken ct)
+    public Task<List<Channel>> GetAllActiveAsync(CancellationToken ct)
     {
-        return await db.Channels
+        return db.Channels
+            .Where(c => c.IsActive)
+            .ToListAsync(ct);
+    }
+
+    public Task<Channel?> GetAsync(int id, CancellationToken ct)
+    {
+        return db.Channels
             .Include(c => c.Categories)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
@@ -35,6 +42,11 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
     public Task DeleteAsync(Channel channel, CancellationToken ct)
     {
         db.Channels.Remove(channel);
+        return db.SaveChangesAsync(ct);
+    }
+    
+    public Task SaveChangesAsync(CancellationToken ct)
+    {
         return db.SaveChangesAsync(ct);
     }
 }
