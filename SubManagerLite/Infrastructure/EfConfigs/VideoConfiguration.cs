@@ -21,13 +21,13 @@ public class VideoConfiguration : IEntityTypeConfiguration<Video>
             .HasMaxLength(1000);
         
         builder
-            .Property(x => x.AddedDate)
-            .HasDefaultValueSql("SYSDATETIMEOFFSET()")
+            .Property(v => v.AddedDate)
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedOnAdd();
         
         builder
-            .Property(x => x.MetadataLastRefreshedAt)
-            .HasDefaultValueSql("SYSDATETIMEOFFSET()")
+            .Property(v => v.MetadataLastRefreshedAt)
+            .HasDefaultValueSql("SYSUTCDATETIME()")
             .ValueGeneratedOnAdd();
         
         builder
