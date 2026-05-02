@@ -1,4 +1,5 @@
-﻿using SubManagerLite.Application.Features.Channels;
+﻿using System.Collections.Concurrent;
+using SubManagerLite.Application.Features.Channels;
 using SubManagerLite.Application.Features.Channels.Models;
 using SubManagerLite.Application.Features.Videos.Models;
 using SubManagerLite.Application.Interfaces;
@@ -39,12 +40,24 @@ public sealed class YoutubeMetadataProvider(YoutubeClient youtubeClient) : IYout
         };
     }
 
-    public async Task<YoutubeVideoInfo> GetVideoInfo(string videoId, CancellationToken ct)
+    public async Task<Dictionary<string, YoutubeVideoInfo>> GetVideoInfo(IReadOnlyCollection<string> videoIds, CancellationToken ct)
     {
-        var video = await youtubeClient.Videos.GetAsync(videoId, ct);
+        var videoInfos = new ConcurrentDictionary<string, YoutubeVideoInfo>();
         
-        var duration = (int)(video.Duration?.TotalSeconds ?? 0);
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = 10,
+            CancellationToken = ct
+        };
 
-        return new YoutubeVideoInfo(duration);
+        await Parallel.ForEachAsync(videoIds, parallelOptions, async (videoId, loopCt) =>
+        {
+            var video = await youtubeClient.Videos.GetAsync(videoId, loopCt);
+            var duration = (int)(video.Duration?.TotalSeconds ?? 0);
+
+            videoInfos[videoId] = new YoutubeVideoInfo(duration);
+        });
+
+        return videoInfos.ToDictionary();
     }
 }

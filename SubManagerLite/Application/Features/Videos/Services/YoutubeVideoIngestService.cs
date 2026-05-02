@@ -1,11 +1,14 @@
-﻿using System.Xml.Linq;
+﻿using System.Runtime.InteropServices.JavaScript;
+using System.Xml.Linq;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Interfaces;
 
 namespace SubManagerLite.Application.Features.Videos.Services;
 
-public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeMetadataProvider) : IYoutubeVideoIngestService
+public sealed class YoutubeVideoIngestService (
+    IYoutubeMetadataProvider youtubeMetadataProvider,
+    IVideoRepository videoRepository) : IYoutubeVideoIngestService
 {
     private const int RefreshWindowDays = 14;
     
@@ -18,7 +21,6 @@ public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeM
         var utcNow = DateTimeOffset.UtcNow;
         
         var feedUrl = new Uri($"https://www.youtube.com/feeds/videos.xml?channel_id={channel.YoutubeChannelId}");
-        
         var doc = XDocument.Load(feedUrl.ToString());
         
         XNamespace yt = "http://www.youtube.com/xml/schemas/2015";
@@ -70,6 +72,19 @@ public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeM
                 MetadataLastRefreshedAt = utcNow,
                 ViewCount = long.TryParse(viewCount, out var views) ? views : null,
             });
+        }
+        
+        // get video ids of new videos in recentVideos
+        var newVideoIds = await videoRepository.GetNewVideoIdsAsync(recentVideos.Select(v => v.YoutubeVideoId).ToList(), ct);
+        
+        var videoInfos = await youtubeMetadataProvider.GetVideoInfo(newVideoIds, ct);
+
+        foreach (var video in recentVideos)
+        {
+            if (videoInfos.TryGetValue(video.YoutubeVideoId, out var videoInfo))
+            {
+                video.DurationSeconds = videoInfo.DurationSeconds;
+            }
         }
 
         return recentVideos;

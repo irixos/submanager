@@ -34,6 +34,16 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
             .ToListAsync(ct);       
     }
 
+    public async Task<List<string>> GetNewVideoIdsAsync(List<string> youtubeVideoIds, CancellationToken ct)
+    {
+        var existingVideoIds = await db.Videos
+            .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
+            .Select(v => v.YoutubeVideoId)
+            .ToListAsync(ct);
+        
+        return youtubeVideoIds.Except(existingVideoIds).ToList();      
+    }
+
     public Task AddAsync(Video video, CancellationToken ct)
     {
         db.Videos.Add(video);
