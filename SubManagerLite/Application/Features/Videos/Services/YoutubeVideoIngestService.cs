@@ -7,9 +7,15 @@ namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeMetadataProvider) : IYoutubeVideoIngestService
 {
+    private const int RefreshWindowDays = 14;
+    
     public async Task<List<Video>> GetRecentVideosAsync(Channel channel, CancellationToken ct)
     {
         var recentVideos = new List<Video>();
+        
+        var refreshWindow = TimeSpan.FromDays(RefreshWindowDays);
+        
+        var utcNow = DateTimeOffset.UtcNow;
         
         var feedUrl = new Uri($"https://www.youtube.com/feeds/videos.xml?channel_id={channel.YoutubeChannelId}");
         
@@ -29,8 +35,8 @@ public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeM
             
             var videoId = video.Element(yt + "videoId")?.Value;
             var title = video.Element(atom + "title")?.Value;
-            var publishedDate = video.Element(atom + "published")?.Value;
             var thumbnailUrl = mediaGroup?.Element(media + "thumbnail")?.Attribute("url")?.Value;
+            var publishedDate = video.Element(atom + "published")?.Value;
             var viewCount = mediaCommunity?.Element(media + "statistics")?.Attribute("views")?.Value;
             
             if (videoId is null || title is null || publishedDate is null)
@@ -46,7 +52,13 @@ public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeM
                 continue;
             }
             
-            var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, ct);
+            var dtoPublishedDate = DateTimeOffset.Parse(publishedDate);
+            
+            if (utcNow - dtoPublishedDate >= refreshWindow)
+            {
+                Console.WriteLine($"Video {videoId} skipped for being outside the {refreshWindow.Days} day refresh window. Last published: {publishedDate}");
+                continue;
+            }
             
             recentVideos.Add(new Video
             {
@@ -54,9 +66,8 @@ public sealed class YoutubeVideoIngestService (IYoutubeMetadataProvider youtubeM
                 ChannelId = channel.Id,
                 Title = title,
                 ThumbnailUrl = thumbnailUrl,
-                PublishedDate = DateTimeOffset.Parse(publishedDate),
-                MetadataLastRefreshedAt = DateTimeOffset.UtcNow,
-                DurationSeconds = videoInfo.DurationSeconds,
+                PublishedDate = dtoPublishedDate,
+                MetadataLastRefreshedAt = utcNow,
                 ViewCount = long.TryParse(viewCount, out var views) ? views : null,
             });
         }
