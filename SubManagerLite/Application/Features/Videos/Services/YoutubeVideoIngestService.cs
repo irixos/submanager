@@ -6,6 +6,7 @@ using SubManagerLite.Application.Interfaces;
 namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class YoutubeVideoIngestService (
+    IHttpClientFactory httpClientFactory,
     IYoutubeMetadataProvider youtubeMetadataProvider,
     IVideoRepository videoRepository) : IYoutubeVideoIngestService
 {
@@ -18,11 +19,14 @@ public sealed class YoutubeVideoIngestService (
         var refreshWindow = TimeSpan.FromDays(RefreshWindowDays);
         
         var utcNow = DateTimeOffset.UtcNow;
+        
+        var httpClient = httpClientFactory.CreateClient();
 
         foreach (var channel in channels)
         {
             var feedUrl = new Uri($"https://www.youtube.com/feeds/videos.xml?channel_id={channel.YoutubeChannelId}");
-            var doc = XDocument.Load(feedUrl.ToString());
+            var xml = await httpClient.GetStringAsync(feedUrl, ct);
+            var doc = XDocument.Parse(xml);
         
             XNamespace yt = "http://www.youtube.com/xml/schemas/2015";
             XNamespace media = "http://search.yahoo.com/mrss/";

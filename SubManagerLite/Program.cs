@@ -23,6 +23,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddValidation();
 
+builder.Services.AddHttpClient();
+
 // TODO: Move this out later
 // Infrastructure
 builder.Services.AddSingleton<YoutubeClient>();
@@ -37,6 +39,7 @@ builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService
 builder.Services.AddScoped<IChannelService, ChannelService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IVideoService, VideoService>();
+
 
 var app = builder.Build();
 
