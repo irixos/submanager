@@ -34,15 +34,9 @@ public sealed class VideoService(
     {
         // get all active channels
         var activeChannels = await channelRepository.GetAllActiveAsync(ct);
-        var checkedAt = DateTimeOffset.UtcNow;
-        var newVideos = new List<Video>();
-
+        
         // get new videos for each channel
-        foreach (var channel in activeChannels)
-        {
-            newVideos.AddRange(await youtubeVideoIngestService.GetRecentVideosAsync(channel, ct));
-            channel.LastCheckedDate = checkedAt;
-        }
+        var newVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
 
         // update channel last checked date
         await channelRepository.SaveChangesAsync(ct);
