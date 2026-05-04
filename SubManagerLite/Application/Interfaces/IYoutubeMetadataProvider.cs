@@ -6,5 +6,5 @@ namespace SubManagerLite.Application.Interfaces;
 public interface IYoutubeMetadataProvider
 {
     Task<YoutubeChannelInfo> GetChannelInfo(YoutubeChannelRef youtubeChannelRef, CancellationToken ct);
-    Task<Dictionary<string, YoutubeVideoInfo>> GetVideoInfo(IReadOnlyCollection<string> videoIds, CancellationToken ct);
+    Task<YoutubeVideoInfo> GetVideoInfo(string videoId, CancellationToken ct);
 }

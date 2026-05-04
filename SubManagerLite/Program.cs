@@ -7,6 +7,7 @@ using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Features.Videos.Services;
 using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
+using SubManagerLite.Infrastructure.BackgroundServices;
 using SubManagerLite.Infrastructure.Integrations;
 using SubManagerLite.Infrastructure.Repositories;
 using SubManagerLite.Web;
@@ -28,6 +29,10 @@ builder.Services.AddHttpClient();
 // TODO: Move this out later
 // Infrastructure
 builder.Services.AddSingleton<YoutubeClient>();
+builder.Services.AddSingleton<IMetadataTaskQueue, MetadataTaskQueue>();
+
+builder.Services.AddHostedService<MetadataHostedService>();
+
 builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
 builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();

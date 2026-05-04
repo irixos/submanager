@@ -1,4 +1,5 @@
 using SubManagerLite.Application.Entities;
+using SubManagerLite.Application.Features.Videos.Models;
 
 namespace SubManagerLite.Application.Interfaces;
 
@@ -11,4 +12,5 @@ public interface IVideoRepository
     Task AddAsync(Video video, CancellationToken ct);
     Task UpdateAsync(Video video, CancellationToken ct);
     Task UpsertRangeAsync(List<Video> videos, CancellationToken ct);
+    Task UpdateMetadataAsync(Dictionary<string, YoutubeVideoInfo> pendingVideoInfos, CancellationToken ct);
 }

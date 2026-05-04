@@ -6,9 +6,7 @@ using SubManagerLite.Application.Interfaces;
 namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class YoutubeVideoIngestService (
-    IHttpClientFactory httpClientFactory,
-    IYoutubeMetadataProvider youtubeMetadataProvider,
-    IVideoRepository videoRepository) : IYoutubeVideoIngestService
+    IHttpClientFactory httpClientFactory) : IYoutubeVideoIngestService
 {
     private const int RefreshWindowDays = 14;
     
@@ -81,21 +79,7 @@ public sealed class YoutubeVideoIngestService (
             // update channel last checked date
             channel.LastCheckedDate = utcNow;
         }
-        
-        // get video ids of new videos in recentVideos
-        var newVideoIds = await videoRepository.GetNewVideoIdsAsync(recentVideos.Select(v => v.YoutubeVideoId).ToList(), ct);
-        
-        var videoInfos = await youtubeMetadataProvider.GetVideoInfo(newVideoIds, ct);
-
-        foreach (var video in recentVideos)
-        {
-            if (videoInfos.TryGetValue(video.YoutubeVideoId, out var videoInfo))
-            {
-                video.DurationSeconds = videoInfo.DurationSeconds;
-            }
-        }
 
         return recentVideos;
-
     }
 }

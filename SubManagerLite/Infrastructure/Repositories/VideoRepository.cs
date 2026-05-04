@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices.JavaScript;
 using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
+using SubManagerLite.Application.Features.Videos.Models;
 using SubManagerLite.Application.Interfaces;
 
 namespace SubManagerLite.Infrastructure.Repositories;
@@ -41,7 +42,11 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
             .Select(v => v.YoutubeVideoId)
             .ToListAsync(ct);
         
-        return youtubeVideoIds.Except(existingVideoIds).ToList();      
+        var existingVideoIdsSet = existingVideoIds.ToHashSet();
+        
+        return youtubeVideoIds
+            .Where(id => !existingVideoIdsSet.Contains(id))
+            .ToList();       
     }
 
     public Task AddAsync(Video video, CancellationToken ct)
@@ -71,5 +76,23 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
                 .Exclude(v => v.AddedDate)
                 .RunAsync(ct);
         }
+    }
+
+    public async Task UpdateMetadataAsync(Dictionary<string, YoutubeVideoInfo> pendingVideoInfos, CancellationToken ct)
+    {
+        var pendingVideoInfoKeys = pendingVideoInfos.Keys.ToList();
+        
+        var videos = await db.Videos
+            .Where(v => pendingVideoInfoKeys.Contains(v.YoutubeVideoId))
+            .ToListAsync(ct);
+
+        foreach (var video in videos)
+        {
+            var duration = pendingVideoInfos[video.YoutubeVideoId].DurationSeconds;
+            
+            video.DurationSeconds = duration;
+        }
+        
+        await db.SaveChangesAsync(ct);       
     }
 }

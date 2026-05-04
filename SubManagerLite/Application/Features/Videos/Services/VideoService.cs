@@ -3,14 +3,20 @@ using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Features.Videos.Models;
 using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Infrastructure.BackgroundServices;
 
 namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class VideoService(
     IVideoRepository videoRepository,
     IChannelRepository channelRepository,
-    IYoutubeVideoIngestService youtubeVideoIngestService) : IVideoService
+    IYoutubeVideoIngestService youtubeVideoIngestService,
+    IMetadataTaskQueue metadataTaskQueue) : IVideoService
 {
+    
+   private const int DefaultPageSize = 25;
+   private const int MetadataUpdateBatchSize = 3;
+    
    public async Task<List<VideoResponse>> GetAllAsync(CancellationToken ct)
     {
         var videos = await videoRepository.GetAllAsync(ct);
@@ -35,20 +41,51 @@ public sealed class VideoService(
         // get all active channels
         var activeChannels = await channelRepository.GetAllActiveAsync(ct);
         
-        // get new videos for each channel
-        var newVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
+        // get recent videos for each channel
+        var recentVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
 
         // update channel last checked date
         await channelRepository.SaveChangesAsync(ct);
         
-        if (newVideos.Count == 0)
+        if (recentVideos.Count == 0)
             return [];
         
+        // get video ids of new videos in recentVideos
+        var newVideoIds = await videoRepository.GetNewVideoIdsAsync(recentVideos
+            .OrderByDescending(v => v.PublishedDate)
+            .Select(v => v.YoutubeVideoId).ToList(), ct);
+        
         //upsert new videos
-        await videoRepository.UpsertRangeAsync(newVideos, ct);
+        await videoRepository.UpsertRangeAsync(recentVideos, ct);
+
+        // queue background task to refresh metadata for new videos
+        await metadataTaskQueue.QueueBackgroundWorkItemAsync(async (sp, cancellationToken) =>
+        {
+            var youtubeMetadataProvider = sp.GetRequiredService<IYoutubeMetadataProvider>();
+            var backgroundVideoRepository = sp.GetRequiredService<IVideoRepository>();
+            
+            var pendingVideoInfos = new Dictionary<string, YoutubeVideoInfo>();
+            
+            foreach (var videoId in newVideoIds)
+            {
+                var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, cancellationToken);
+                
+                pendingVideoInfos[videoId] = videoInfo;
+
+                if (pendingVideoInfos.Count >= MetadataUpdateBatchSize)
+                {
+                    await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
+                    pendingVideoInfos.Clear();
+                }
+            }
+            
+            // flush remaining pending videos
+            if (pendingVideoInfos.Count == 0) return;
+            await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
+        });
         
         // get newly refreshed videos
-        var youtubeVideoIds = newVideos
+        var youtubeVideoIds = recentVideos
             .Select(v => v.YoutubeVideoId)
             .Distinct()
             .ToList();
@@ -56,7 +93,11 @@ public sealed class VideoService(
         var refreshedVideos = await videoRepository.GetByYoutubeVideoIdsAsync(youtubeVideoIds, ct);
         
         // return new feed items
-        var response = refreshedVideos.Select(MapToVideoResponse).ToList();
+        var response = refreshedVideos
+            .Select(MapToVideoResponse)
+            .OrderByDescending(v => v.PublishedDate)
+            .Take(DefaultPageSize)
+            .ToList();
         
         return response;
     }
