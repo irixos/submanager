@@ -1,7 +1,7 @@
-﻿using System.Xml.Linq;
+﻿using System.Collections.Concurrent;
+using System.Xml.Linq;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Interfaces;
 
 namespace SubManagerLite.Application.Features.Videos.Services;
 
@@ -12,7 +12,7 @@ public sealed class YoutubeVideoIngestService (
     
     public async Task<List<Video>> GetRecentVideosAsync(IReadOnlyCollection<Channel> channels, CancellationToken ct)
     {
-        var recentVideos = new List<Video>();
+        var recentVideos = new ConcurrentBag<Video>();
         
         var refreshWindow = TimeSpan.FromDays(RefreshWindowDays);
         
@@ -20,12 +20,18 @@ public sealed class YoutubeVideoIngestService (
         
         var httpClient = httpClientFactory.CreateClient();
 
-        foreach (var channel in channels)
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = 5,
+            CancellationToken = ct
+        };
+
+        await Parallel.ForEachAsync(channels, parallelOptions, async (channel, loopCt) =>
         {
             var feedUrl = new Uri($"https://www.youtube.com/feeds/videos.xml?channel_id={channel.YoutubeChannelId}");
-            var xml = await httpClient.GetStringAsync(feedUrl, ct);
+            var xml = await httpClient.GetStringAsync(feedUrl, loopCt);
             var doc = XDocument.Parse(xml);
-        
+
             XNamespace yt = "http://www.youtube.com/xml/schemas/2015";
             XNamespace media = "http://search.yahoo.com/mrss/";
             XNamespace atom = "http://www.w3.org/2005/Atom";
@@ -37,34 +43,35 @@ public sealed class YoutubeVideoIngestService (
             {
                 var mediaGroup = video.Element(media + "group");
                 var mediaCommunity = mediaGroup?.Element(media + "community");
-            
+
                 var videoId = video.Element(yt + "videoId")?.Value;
                 var title = video.Element(atom + "title")?.Value;
                 var thumbnailUrl = mediaGroup?.Element(media + "thumbnail")?.Attribute("url")?.Value;
                 var publishedDate = video.Element(atom + "published")?.Value;
                 var viewCount = mediaCommunity?.Element(media + "statistics")?.Attribute("views")?.Value;
-            
+
                 if (videoId is null || title is null || publishedDate is null)
                 {
                     var missing = new List<string>();
-                
+
                     if (videoId is null) missing.Add("videoId");
                     if (title is null) missing.Add("title");
                     if (publishedDate is null) missing.Add("publishedDate");
-                
+
                     Console.WriteLine($"Missing required fields for video: {string.Join(", ", missing)}");
-                
+
                     continue;
                 }
-            
+
                 var dtoPublishedDate = DateTimeOffset.Parse(publishedDate);
-            
+
                 if (utcNow - dtoPublishedDate >= refreshWindow)
                 {
-                    Console.WriteLine($"Video {videoId} skipped for being outside the {refreshWindow.Days} day refresh window. Last published: {publishedDate}");
+                    Console.WriteLine(
+                        $"Video {videoId} skipped for being outside the {refreshWindow.Days} day refresh window. Last published: {publishedDate}");
                     continue;
                 }
-            
+
                 recentVideos.Add(new Video
                 {
                     YoutubeVideoId = videoId,
@@ -76,10 +83,11 @@ public sealed class YoutubeVideoIngestService (
                     ViewCount = long.TryParse(viewCount, out var views) ? views : null,
                 });
             }
+
             // update channel last checked date
             channel.LastCheckedDate = utcNow;
-        }
+        });
 
-        return recentVideos;
+        return recentVideos.ToList();
     }
 }
