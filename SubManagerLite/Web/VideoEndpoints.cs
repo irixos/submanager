@@ -28,12 +28,14 @@ public static class VideoEndpoints
             });
         
         group.MapPost("/refresh",
-            async (
+            async Task<Results<Ok<List<VideoResponse>>, Conflict<string>>>(
                 IVideoService videoService, 
                 CancellationToken ct) =>
             {
                 var response = await videoService.RefreshAllAsync(ct);
-                return TypedResults.Ok(response);
+                return !response.IsAlreadyRunning
+                    ? TypedResults.Ok(response.Response)
+                    : TypedResults.Conflict("Refresh already in progress");
             });
         
         group.MapPut("/{id:int}/watched-date", 

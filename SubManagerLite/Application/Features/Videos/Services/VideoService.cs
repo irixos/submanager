@@ -16,6 +16,7 @@ public sealed class VideoService(
     
    private const int DefaultPageSize = 25;
    private const int MetadataUpdateBatchSize = 3;
+   private static readonly SemaphoreSlim RefreshSemaphore = new(1, 1);
     
    public async Task<List<VideoResponse>> GetAllAsync(CancellationToken ct)
     {
@@ -36,70 +37,84 @@ public sealed class VideoService(
         return response;
     }
     
-    public async Task<List<VideoResponse>> RefreshAllAsync(CancellationToken ct)
+    public async Task<RefreshResult> RefreshAllAsync(CancellationToken ct)
     {
-        // get all active channels
-        var activeChannels = await channelRepository.GetAllActiveAsync(ct);
-        
-        // get recent videos for each channel
-        var recentVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
+        // only allow one refresh at a time
+        if (!await RefreshSemaphore.WaitAsync(0, ct))
+            return new RefreshResult {IsAlreadyRunning = true};
 
-        // update channel last checked date
-        await channelRepository.SaveChangesAsync(ct);
-        
-        if (recentVideos.Count == 0)
-            return [];
-        
-        // get video ids of new videos in recentVideos
-        var newVideoIds = await videoRepository.GetNewVideoIdsAsync(recentVideos
-            .OrderByDescending(v => v.PublishedDate)
-            .Select(v => v.YoutubeVideoId).ToList(), ct);
-        
-        //upsert new videos
-        await videoRepository.UpsertRangeAsync(recentVideos, ct);
-
-        // queue background task to refresh metadata for new videos
-        await metadataTaskQueue.QueueBackgroundWorkItemAsync(async (sp, cancellationToken) =>
+        try
         {
-            var youtubeMetadataProvider = sp.GetRequiredService<IYoutubeMetadataProvider>();
-            var backgroundVideoRepository = sp.GetRequiredService<IVideoRepository>();
-            
-            var pendingVideoInfos = new Dictionary<string, YoutubeVideoInfo>();
-            
-            foreach (var videoId in newVideoIds)
-            {
-                var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, cancellationToken);
-                
-                pendingVideoInfos[videoId] = videoInfo;
+            // get all active channels
+            var activeChannels = await channelRepository.GetAllActiveAsync(ct);
 
-                if (pendingVideoInfos.Count >= MetadataUpdateBatchSize)
+            // get recent videos for each channel
+            var recentVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
+
+            // update channel last checked date
+            await channelRepository.SaveChangesAsync(ct);
+
+            if (recentVideos.Count == 0)
+                return new RefreshResult();
+
+            // get video ids of new videos in recentVideos
+            var newVideoIds = await videoRepository.GetNewVideoIdsAsync(recentVideos
+                .OrderByDescending(v => v.PublishedDate)
+                .Select(v => v.YoutubeVideoId).ToList(), ct);
+
+            //upsert new videos
+            await videoRepository.UpsertRangeAsync(recentVideos, ct);
+
+            // queue background task to refresh metadata for new videos
+            await metadataTaskQueue.QueueBackgroundWorkItemAsync(async (sp, cancellationToken) =>
+            {
+                var youtubeMetadataProvider = sp.GetRequiredService<IYoutubeMetadataProvider>();
+                var backgroundVideoRepository = sp.GetRequiredService<IVideoRepository>();
+
+                var pendingVideoInfos = new Dictionary<string, YoutubeVideoInfo>();
+
+                foreach (var videoId in newVideoIds)
                 {
-                    await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
-                    pendingVideoInfos.Clear();
+                    var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, cancellationToken);
+
+                    pendingVideoInfos[videoId] = videoInfo;
+
+                    if (pendingVideoInfos.Count >= MetadataUpdateBatchSize)
+                    {
+                        await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
+                        pendingVideoInfos.Clear();
+                    }
                 }
-            }
-            
-            // flush remaining pending videos
-            if (pendingVideoInfos.Count == 0) return;
-            await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
-        });
-        
-        // get newly refreshed videos
-        var youtubeVideoIds = recentVideos
-            .Select(v => v.YoutubeVideoId)
-            .Distinct()
-            .ToList();
-        
-        var refreshedVideos = await videoRepository.GetByYoutubeVideoIdsAsync(youtubeVideoIds, ct);
-        
-        // return new feed items
-        var response = refreshedVideos
-            .Select(MapToVideoResponse)
-            .OrderByDescending(v => v.PublishedDate)
-            .Take(DefaultPageSize)
-            .ToList();
-        
-        return response;
+
+                // flush remaining pending videos
+                if (pendingVideoInfos.Count == 0) return;
+                await backgroundVideoRepository.UpdateMetadataAsync(pendingVideoInfos, cancellationToken);
+            });
+
+            // get newly refreshed videos
+            var youtubeVideoIds = recentVideos
+                .Select(v => v.YoutubeVideoId)
+                .Distinct()
+                .ToList();
+
+            var refreshedVideos = await videoRepository.GetByYoutubeVideoIdsAsync(youtubeVideoIds, ct);
+
+            // return new feed items
+            var response = new RefreshResult
+            {
+                Response = refreshedVideos
+                    .Select(MapToVideoResponse)
+                    .OrderByDescending(v => v.PublishedDate)
+                    .Take(DefaultPageSize)
+                    .ToList(),
+            };
+
+            return response;
+        }
+        finally
+        {
+            RefreshSemaphore.Release();
+        }
     }
 
     public async Task<bool> UpdateWatchedDateAsync(int id, UpdateVideoWatchedDateRequest request, CancellationToken ct)
