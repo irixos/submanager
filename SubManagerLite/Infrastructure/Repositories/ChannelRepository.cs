@@ -9,6 +9,7 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
     public Task<List<Channel>> GetAllAsync(CancellationToken ct)
     {
         return db.Channels
+            .AsNoTracking()
             .Include(c => c.Categories)
             .ToListAsync(ct);
     }
@@ -16,6 +17,7 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
     public Task<List<Channel>> GetAllActiveAsync(CancellationToken ct)
     {
         return db.Channels
+            .AsNoTracking()
             .Where(c => c.IsActive)
             .ToListAsync(ct);
     }
@@ -23,6 +25,7 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
     public Task<Channel?> GetAsync(int id, CancellationToken ct)
     {
         return db.Channels
+            .AsNoTracking()
             .Include(c => c.Categories)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }

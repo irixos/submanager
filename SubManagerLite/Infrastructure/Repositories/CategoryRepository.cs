@@ -8,12 +8,12 @@ public sealed class CategoryRepository(ApplicationDbContext db) : ICategoryRepos
 {
     public Task<List<Category>> GetAllAsync(CancellationToken ct)
     {
-        return db.Categories.ToListAsync(ct);
+        return db.Categories.AsNoTracking().ToListAsync(ct);
     }
 
     public Task<Category?> GetAsync(int id, CancellationToken ct)
     {
-        return db.Categories.FirstOrDefaultAsync(c => c.Id == id, ct);
+        return db.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
     public Task<List<Category>> GetByIdsAsync(List<int> ids, CancellationToken ct)

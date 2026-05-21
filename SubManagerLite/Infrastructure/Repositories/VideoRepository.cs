@@ -13,6 +13,7 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
     public Task<List<Video>> GetAllAsync(CancellationToken ct)
     {
         return db.Videos
+            .AsNoTracking()
             .Include(v => v.Channel)
             .ThenInclude(c => c.Categories)
             .ToListAsync(ct);
@@ -21,6 +22,7 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
     public Task<Video?> GetAsync(int id, CancellationToken ct)
     {
         return db.Videos
+            .AsNoTracking()
             .Include(v => v.Channel)
             .ThenInclude(c => c.Categories)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
@@ -29,6 +31,7 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
     public Task<List<Video>> GetByYoutubeVideoIdsAsync(List<string> youtubeVideoIds, CancellationToken ct)
     {
         return db.Videos
+            .AsNoTracking()
             .Include(v => v.Channel)
             .ThenInclude(c => c.Categories)
             .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
@@ -38,6 +41,7 @@ public class VideoRepository(ApplicationDbContext db) : IVideoRepository
     public async Task<List<string>> GetNewVideoIdsAsync(List<string> youtubeVideoIds, CancellationToken ct)
     {
         var existingVideoIds = await db.Videos
+            .AsNoTracking()
             .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
             .Select(v => v.YoutubeVideoId)
             .ToListAsync(ct);
