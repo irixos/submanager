@@ -5,7 +5,7 @@ using SubManagerLite.Application.Features.Channels.Models;
 
 namespace SubManagerLite.Application.Features.Channels.Services;
 
-public sealed class YoutubeChannelRefService() : IYoutubeChannelRefService
+public static class YoutubeChannelRefParser
 {
     private static readonly char[] TrimChars = ['<', '>', '(', ')', '"', '\''];
 
@@ -36,7 +36,7 @@ public sealed class YoutubeChannelRefService() : IYoutubeChannelRefService
         (YouTubeLegacyUserUrlRegex, YoutubeChannelRefKind.Username)
     ];
 
-    public YoutubeChannelRef GetYoutubeChannelRef(string channelUrl)
+    public static YoutubeChannelRef Parse(string channelUrl)
     {
         var trimmed = SanitizeUrl(channelUrl);
         var uri = NormalizeYouTubeUrl(trimmed);

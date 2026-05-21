@@ -10,7 +10,6 @@ namespace SubManagerLite.Application.Features.Channels.Services;
 public sealed class ChannelService(
     IChannelRepository channelRepository,
     ICategoryRepository categoryRepository,
-    IYoutubeChannelRefService youtubeChannelRefService,
     IYoutubeMetadataProvider youtubeMetadataProvider) : IChannelService
 {
     public async Task<List<ChannelResponse>> GetAllAsync(CancellationToken ct)
@@ -34,7 +33,7 @@ public sealed class ChannelService(
     
     public async Task<ChannelResponse?> CreateAsync(CreateChannelRequest request, CancellationToken ct)
     {
-        var youtubeChannelRef = youtubeChannelRefService.GetYoutubeChannelRef(request.ChannelUrl);
+        var youtubeChannelRef = YoutubeChannelRefParser.Parse(request.ChannelUrl);
         var channelInfo = await youtubeMetadataProvider.GetChannelInfo(youtubeChannelRef, ct);
 
         var channel = new Channel
