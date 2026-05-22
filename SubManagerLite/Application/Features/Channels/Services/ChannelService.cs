@@ -1,7 +1,5 @@
-﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 using SubManagerLite.Application.Interfaces;
@@ -17,7 +15,7 @@ public sealed class ChannelService(
     {
         return await db.Channels
             .AsNoTracking()
-            .Select(ToChannelResponse)
+            .Select(ChannelMappings.ToChannelResponse)
             .ToListAsync(ct); 
     }
 
@@ -26,7 +24,7 @@ public sealed class ChannelService(
         return await db.Channels
             .AsNoTracking()
             .Where(c => c.Id == id)
-            .Select(ToChannelResponse)
+            .Select(ChannelMappings.ToChannelResponse)
             .FirstOrDefaultAsync(ct);
     }
     
@@ -53,7 +51,7 @@ public sealed class ChannelService(
             return null;
         }
 
-        var response = MapToChannelResponse(channel);
+        var response = ChannelMappings.MapToChannelResponse(channel);
         
         return response;
     }
@@ -108,47 +106,5 @@ public sealed class ChannelService(
         await db.SaveChangesAsync(ct);
         
         return true;
-    }
-    
-    private static readonly Expression<Func<Channel, ChannelResponse>> ToChannelResponse = 
-        channel => new ChannelResponse
-        {
-            Id = channel.Id,
-            YoutubeChannelId = channel.YoutubeChannelId,
-            Name = channel.Name,
-            ThumbnailUrl = channel.ThumbnailUrl,
-            AddedDate = channel.AddedDate,
-            LastCheckedDate = channel.LastCheckedDate,
-            IsActive = channel.IsActive,
-            Categories = channel.Categories
-                .Select(category => new CategoryResponse
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    Color = category.Color
-                })
-                .ToList()
-        };
-    
-    private static ChannelResponse MapToChannelResponse(Channel channel)
-    {
-        return new ChannelResponse
-        {
-            Id = channel.Id,
-            YoutubeChannelId = channel.YoutubeChannelId,
-            Name = channel.Name,
-            ThumbnailUrl = channel.ThumbnailUrl,
-            AddedDate = channel.AddedDate,
-            LastCheckedDate = channel.LastCheckedDate,
-            IsActive = channel.IsActive,
-            Categories = channel.Categories
-                .Select(category => new CategoryResponse
-                {
-                    Id = category.Id,
-                    Name = category.Name,
-                    Color = category.Color
-                })
-                .ToList()
-        };
     }
 }

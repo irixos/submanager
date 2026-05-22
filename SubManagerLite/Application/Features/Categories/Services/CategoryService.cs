@@ -13,7 +13,7 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
     {
         return await db.Categories
             .AsNoTracking()
-            .Select(ToCategoryResponse)
+            .Select(CategoryMappings.ToCategoryResponse)
             .ToListAsync(ct);
     }
     
@@ -21,7 +21,7 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
     {
         return await db.Categories
             .AsNoTracking()
-            .Select(ToCategoryResponse)
+            .Select(CategoryMappings.ToCategoryResponse)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
     
@@ -43,7 +43,7 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
             return null;
         }
 
-        var response = MapToCategoryResponse(category);
+        var response = CategoryMappings.MapToCategoryResponse(category);
         
         return response;
     }
@@ -75,23 +75,5 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
         await db.SaveChangesAsync(ct);
         
         return true;
-    }
-
-    private static readonly Expression<Func<Category, CategoryResponse>> ToCategoryResponse =
-        category => new CategoryResponse
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Color = category.Color
-        };
-
-    private static CategoryResponse MapToCategoryResponse(Category category)
-    {
-        return new CategoryResponse
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Color = category.Color
-        };
     }
 }
