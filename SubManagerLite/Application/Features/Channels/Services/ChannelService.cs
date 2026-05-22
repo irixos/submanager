@@ -39,6 +39,9 @@ public sealed class ChannelService(
             Name = channelInfo.Name,
             ThumbnailUrl = channelInfo.ThumbnailUrl,
             IsActive = true,
+            Categories = await db.Categories
+                .Where(c => request.CategoryIds.Contains((c.Id)))
+                .ToListAsync(ct)
         };
 
         try
