@@ -11,7 +11,6 @@ namespace SubManagerLite.Application.Features.Channels.Services;
 
 public sealed class ChannelService(
     ApplicationDbContext db,
-    ICategoryRepository categoryRepository,
     IYoutubeMetadataProvider youtubeMetadataProvider) : IChannelService
 {
     public async Task<List<ChannelResponse>> GetAllAsync(CancellationToken ct)
@@ -66,7 +65,9 @@ public sealed class ChannelService(
 
         if (request.CategoryIds is not null)
         {
-            var newCategories = await categoryRepository.GetByIdsAsync(request.CategoryIds, ct);
+            var newCategories = await db.Categories
+                .Where(c => request.CategoryIds.Contains(c.Id))
+                .ToListAsync(ct);
             
             if (newCategories.Count != request.CategoryIds.Distinct().Count())
                 throw new ArgumentException("Invalid category ids");

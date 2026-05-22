@@ -1,35 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Categories.Interfaces;
 using SubManagerLite.Application.Features.Categories.Models;
-using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Infrastructure;
 
 namespace SubManagerLite.Application.Features.Categories.Services;
 
-public sealed class CategoryService(ICategoryRepository categoryRepository) : ICategoryService
+public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
 {
     public async Task<List<CategoryResponse>> GetAllAsync(CancellationToken ct)
     {
-        var categories = await categoryRepository.GetAllAsync(ct);
-        
-        var response = categories.Select(MapToCategoryResponse).ToList();
-        
-        return response;
+        return await db.Categories
+            .AsNoTracking()
+            .Select(ToCategoryResponse)
+            .ToListAsync(ct);
     }
     
     public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
     {
-        var channel = await categoryRepository.GetAsync(id, ct);
-        if (channel is null) return null;
-
-        var response = MapToCategoryResponse(channel);
-
-        return response;
+        return await db.Categories
+            .AsNoTracking()
+            .Select(ToCategoryResponse)
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
     
     public async Task<CategoryResponse?> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {
-
         var category = new Category
         {
             Name = request.Name,
@@ -38,7 +35,8 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
 
         try
         {
-            await categoryRepository.AddAsync(category, ct);
+            await db.AddAsync(category, ct);
+            await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException)
         {
@@ -52,7 +50,7 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
 
     public async Task<bool> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct)
     {
-        var category = await categoryRepository.GetAsync(id, ct);
+        var category = await db.Categories.FindAsync([id], ct);
         if (category is null) return false;
         
         if (request.Name is not null)
@@ -62,18 +60,30 @@ public sealed class CategoryService(ICategoryRepository categoryRepository) : IC
         else if (request.Color is not null)
             category.Color = request.Color;
          
-        await categoryRepository.UpdateAsync(category, ct);
+        db.Categories.Update(category);
+        await db.SaveChangesAsync(ct);
+        
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
-        var category = await categoryRepository.GetAsync(id, ct);
+        var category = await db.Categories.FindAsync([id], ct);
         if (category is null) return false;
          
-        await categoryRepository.DeleteAsync(category, ct);
+        db.Categories.Remove(category);
+        await db.SaveChangesAsync(ct);
+        
         return true;
     }
+
+    private static readonly Expression<Func<Category, CategoryResponse>> ToCategoryResponse =
+        category => new CategoryResponse
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Color = category.Color
+        };
 
     private static CategoryResponse MapToCategoryResponse(Category category)
     {
