@@ -1,16 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Features.Categories.Interfaces;
-using SubManagerLite.Application.Features.Categories.Services;
-using SubManagerLite.Application.Features.Channels.Interfaces;
-using SubManagerLite.Application.Features.Channels.Services;
-using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Features.Videos.Services;
-using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Application;
 using SubManagerLite.Infrastructure;
-using SubManagerLite.Infrastructure.BackgroundServices;
-using SubManagerLite.Infrastructure.Integrations;
 using SubManagerLite.Web;
-using YoutubeExplode;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,24 +23,9 @@ builder.Services.AddProblemDetails(options =>
 });
 
 builder.Services.AddValidation();
-
 builder.Services.AddHttpClient();
-
-// TODO: Move this out later
-// Infrastructure
-builder.Services.AddSingleton<YoutubeClient>();
-builder.Services.AddSingleton<IMetadataTaskQueue, MetadataTaskQueue>();
-
-builder.Services.AddHostedService<MetadataHostedService>();
-
-builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
-
-// Application Core
-builder.Services.AddScoped<IChannelService, ChannelService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IVideoService, VideoService>();
-builder.Services.AddScoped<IVideoRefreshService, VideoRefreshService>();
-builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices();
 
 var app = builder.Build();
 
