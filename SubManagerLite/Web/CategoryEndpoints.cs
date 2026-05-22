@@ -16,7 +16,7 @@ public static class CategoryEndpoints
             });
         
         group.MapGet("/{id:int}",
-            async Task<Results<Ok<CategoryResponse>, NotFound<string>>>(
+            async Task<Results<Ok<CategoryResponse>, NotFound>>(
                 int id,
                 ICategoryService categoryService,
                 CancellationToken ct) =>
@@ -24,11 +24,11 @@ public static class CategoryEndpoints
                 var response = await categoryService.GetAsync(id, ct);
                 return response is not null
                     ? TypedResults.Ok(response)
-                    : TypedResults.NotFound("Category not found");
+                    : TypedResults.NotFound();
             });
         
         group.MapPost("/",
-            async Task<Results<Created<CategoryResponse>, Conflict<string>>>(
+            async Task<Results<Created<CategoryResponse>, Conflict>>(
                 CreateCategoryRequest request, 
                 ICategoryService categoryService, 
                 CancellationToken ct) =>
@@ -36,11 +36,11 @@ public static class CategoryEndpoints
                 var response = await categoryService.CreateAsync(request, ct);
                 return response is not null
                     ? TypedResults.Created($"/categories/{response.Id}", response)
-                    : TypedResults.Conflict("Category already exists");
+                    : TypedResults.Conflict();
             });
         
         group.MapPut("/{id:int}", 
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
             int id,
             UpdateCategoryRequest request,
             ICategoryService categoryService,
@@ -49,11 +49,11 @@ public static class CategoryEndpoints
             var response = await categoryService.UpdateAsync(id, request, ct);
             return response
                 ? TypedResults.NoContent()
-                : TypedResults.NotFound("Category not found");
+                : TypedResults.NotFound();
         });
         
         group.MapDelete("/{id:int}",
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
                 int id,
                 ICategoryService categoryService,
                 CancellationToken ct) =>
@@ -61,7 +61,7 @@ public static class CategoryEndpoints
                 var response = await categoryService.DeleteAsync(id, ct);
                 return response 
                     ? TypedResults.NoContent() 
-                    : TypedResults.NotFound("Category not found");
+                    : TypedResults.NotFound();
             });
 
         return group;

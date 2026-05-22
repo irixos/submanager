@@ -16,7 +16,7 @@ public static class VideoEndpoints
             });
 
         group.MapGet("/{id:int}",
-            async Task<Results<Ok<VideoResponse>, NotFound<string>>>(
+            async Task<Results<Ok<VideoResponse>, NotFound>>(
                 int id,
                 IVideoService videoService, 
                 CancellationToken ct) =>
@@ -24,22 +24,22 @@ public static class VideoEndpoints
                 var response = await videoService.GetAsync(id, ct);
                 return response is not null
                     ? TypedResults.Ok(response)
-                    : TypedResults.NotFound("Video not found");
+                    : TypedResults.NotFound();
             });
         
         group.MapPost("/refresh",
-            async Task<Results<Ok<List<VideoResponse>>, Conflict<string>>>(
+            async Task<Results<Ok<List<VideoResponse>>, Conflict>>(
                 IVideoRefreshService videoRefreshService, 
                 CancellationToken ct) =>
             {
                 var response = await videoRefreshService.RefreshAllAsync(ct);
                 return !response.IsAlreadyRunning
                     ? TypedResults.Ok(response.Response)
-                    : TypedResults.Conflict("Refresh already in progress");
+                    : TypedResults.Conflict();
             });
         
         group.MapPatch("/{id:int}/watched-date", 
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
             int id,
             UpdateVideoWatchedDateRequest request,
             IVideoService videoService,
@@ -48,7 +48,7 @@ public static class VideoEndpoints
             var response = await videoService.UpdateWatchedDateAsync(id, request, ct);
             return response
                 ? TypedResults.NoContent()
-                : TypedResults.NotFound("Video not found");
+                : TypedResults.NotFound();
         });
 
         return group;

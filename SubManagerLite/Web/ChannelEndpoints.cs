@@ -17,7 +17,7 @@ public static class ChannelEndpoints
             });
 
         group.MapGet("/{id:int}",
-            async Task<Results<Ok<ChannelResponse>, NotFound<string>>>(
+            async Task<Results<Ok<ChannelResponse>, NotFound>>(
                 int id,
                 IChannelService channelService, 
                 CancellationToken ct) =>
@@ -25,11 +25,11 @@ public static class ChannelEndpoints
                 var response = await channelService.GetAsync(id, ct);
                 return response is not null
                     ? TypedResults.Ok(response)
-                    : TypedResults.NotFound("Channel not found");
+                    : TypedResults.NotFound();
             });
         
         group.MapPost("/",
-            async Task<Results<Created<ChannelResponse>, Conflict<string>>>(
+            async Task<Results<Created<ChannelResponse>, Conflict>>(
                 CreateChannelRequest request, 
                 IChannelService channelService, 
                 CancellationToken ct) =>
@@ -37,11 +37,11 @@ public static class ChannelEndpoints
                 var response = await channelService.CreateAsync(request, ct);
                 return response is not null
                     ? TypedResults.Created($"/channels/{response.Id}", response)
-                    : TypedResults.Conflict("Channel already exists");
+                    : TypedResults.Conflict();
             });
         
         group.MapPatch("/{id:int}/categories", 
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
             int id,
             UpdateChannelCategoriesRequest request,
             IChannelService channelService,
@@ -50,11 +50,11 @@ public static class ChannelEndpoints
             var response = await channelService.UpdateCategoriesAsync(id, request, ct);
             return response
                 ? TypedResults.NoContent()
-                : TypedResults.NotFound("Channel not found");
+                : TypedResults.NotFound();
         });
         
         group.MapPatch("/{id:int}/status", 
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
                 int id,
                 UpdateChannelStatusRequest request,
                 IChannelService channelService,
@@ -63,11 +63,11 @@ public static class ChannelEndpoints
                 var response = await channelService.UpdateStatusAsync(id, request, ct);
                 return response
                     ? TypedResults.NoContent()
-                    : TypedResults.NotFound("Channel not found");
+                    : TypedResults.NotFound();
             });
         
         group.MapDelete("/{id:int}",
-            async Task<Results<NoContent, NotFound<string>>> (
+            async Task<Results<NoContent, NotFound>> (
                 int id,
                 IChannelService channelService,
                 CancellationToken ct) =>
@@ -75,7 +75,7 @@ public static class ChannelEndpoints
                 var response = await channelService.DeleteAsync(id, ct);
                 return response 
                     ? TypedResults.NoContent() 
-                    : TypedResults.NotFound("Channel not found");
+                    : TypedResults.NotFound();
             });
 
         return group;
