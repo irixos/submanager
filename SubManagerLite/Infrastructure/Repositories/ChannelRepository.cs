@@ -17,7 +17,6 @@ public sealed class ChannelRepository(ApplicationDbContext db) : IChannelReposit
     public Task<List<Channel>> GetAllActiveAsync(CancellationToken ct)
     {
         return db.Channels
-            .AsNoTracking()
             .Where(c => c.IsActive)
             .ToListAsync(ct);
     }
