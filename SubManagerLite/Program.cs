@@ -9,7 +9,6 @@ using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 using SubManagerLite.Infrastructure.BackgroundServices;
 using SubManagerLite.Infrastructure.Integrations;
-using SubManagerLite.Infrastructure.Repositories;
 using SubManagerLite.Web;
 using YoutubeExplode;
 
@@ -44,13 +43,13 @@ builder.Services.AddSingleton<IMetadataTaskQueue, MetadataTaskQueue>();
 builder.Services.AddHostedService<MetadataHostedService>();
 
 builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
-builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 
 // Application Core
-builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
 builder.Services.AddScoped<IChannelService, ChannelService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IVideoService, VideoService>();
+builder.Services.AddScoped<IVideoRefreshService, VideoRefreshService>();
+builder.Services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
 
 var app = builder.Build();
 

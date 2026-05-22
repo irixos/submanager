@@ -6,6 +6,5 @@ public interface IVideoService
 {
     Task<List<VideoResponse>> GetAllAsync(CancellationToken ct);
     Task<VideoResponse?> GetAsync(int id, CancellationToken ct);
-    Task<RefreshResult> RefreshAllAsync(CancellationToken ct);
     Task<bool> UpdateWatchedDateAsync(int id, UpdateVideoWatchedDateRequest request, CancellationToken ct);
 }

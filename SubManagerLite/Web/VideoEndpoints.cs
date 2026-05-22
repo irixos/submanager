@@ -29,10 +29,10 @@ public static class VideoEndpoints
         
         group.MapPost("/refresh",
             async Task<Results<Ok<List<VideoResponse>>, Conflict<string>>>(
-                IVideoService videoService, 
+                IVideoRefreshService videoRefreshService, 
                 CancellationToken ct) =>
             {
-                var response = await videoService.RefreshAllAsync(ct);
+                var response = await videoRefreshService.RefreshAllAsync(ct);
                 return !response.IsAlreadyRunning
                     ? TypedResults.Ok(response.Response)
                     : TypedResults.Conflict("Refresh already in progress");
