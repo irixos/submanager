@@ -12,7 +12,6 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
     public async Task<List<CategoryResponse>> GetAllAsync(CancellationToken ct)
     {
         return await db.Categories
-            .AsNoTracking()
             .Select(CategoryMappings.ToCategoryResponse)
             .ToListAsync(ct);
     }
@@ -20,7 +19,6 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
     public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
     {
         return await db.Categories
-            .AsNoTracking()
             .Select(CategoryMappings.ToCategoryResponse)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }

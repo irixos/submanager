@@ -14,7 +14,6 @@ public sealed class ChannelService(
     public async Task<List<ChannelResponse>> GetAllAsync(CancellationToken ct)
     {
         return await db.Channels
-            .AsNoTracking()
             .Select(ChannelMappings.ToChannelResponse)
             .ToListAsync(ct); 
     }
@@ -22,7 +21,6 @@ public sealed class ChannelService(
     public async Task<ChannelResponse?> GetAsync(int id, CancellationToken ct)
     {
         return await db.Channels
-            .AsNoTracking()
             .Where(c => c.Id == id)
             .Select(ChannelMappings.ToChannelResponse)
             .FirstOrDefaultAsync(ct);

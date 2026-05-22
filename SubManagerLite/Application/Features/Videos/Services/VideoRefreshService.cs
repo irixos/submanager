@@ -67,7 +67,6 @@ public sealed class VideoRefreshService(
             var response = new RefreshResult
             {
                 Response = await db.Videos
-                    .AsNoTracking()
                     .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
                     .Select(VideoMappings.ToVideoResponse)
                     .OrderByDescending(v => v.PublishedDate)
@@ -111,7 +110,6 @@ public sealed class VideoRefreshService(
     private async Task<List<string>> GetNewVideoIdsAsync(List<string> youtubeVideoIds, CancellationToken ct)
     {
         var existingVideoIds = await db.Videos
-            .AsNoTracking()
             .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
             .Select(v => v.YoutubeVideoId)
             .ToListAsync(ct);

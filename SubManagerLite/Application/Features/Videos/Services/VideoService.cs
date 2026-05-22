@@ -7,10 +7,9 @@ namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class VideoService(ApplicationDbContext db) : IVideoService
 {
-   public async Task<List<VideoResponse>> GetAllAsync(CancellationToken ct)
+    public async Task<List<VideoResponse>> GetAllAsync(CancellationToken ct)
     {
         return await db.Videos
-            .AsNoTracking()
             .Select(VideoMappings.ToVideoResponse)
             .ToListAsync(ct);
     }
@@ -18,7 +17,6 @@ public sealed class VideoService(ApplicationDbContext db) : IVideoService
     public async Task<VideoResponse?> GetAsync(int id, CancellationToken ct)
     {
         return await db.Videos
-            .AsNoTracking()
             .Select(VideoMappings.ToVideoResponse)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }
