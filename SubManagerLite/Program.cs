@@ -44,7 +44,6 @@ builder.Services.AddSingleton<IMetadataTaskQueue, MetadataTaskQueue>();
 builder.Services.AddHostedService<MetadataHostedService>();
 
 builder.Services.AddScoped<IYoutubeMetadataProvider, YoutubeMetadataProvider>();
-builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 

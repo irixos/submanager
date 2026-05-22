@@ -1,34 +1,34 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Infrastructure;
 
 namespace SubManagerLite.Application.Features.Channels.Services;
 
 public sealed class ChannelService(
-    IChannelRepository channelRepository,
+    ApplicationDbContext db,
     ICategoryRepository categoryRepository,
     IYoutubeMetadataProvider youtubeMetadataProvider) : IChannelService
 {
     public async Task<List<ChannelResponse>> GetAllAsync(CancellationToken ct)
     {
-        var channels = await channelRepository.GetAllAsync(ct);
-        
-        var response = channels.Select(MapToChannelResponse).ToList();
-        
-        return response;
+        return await db.Channels
+            .AsNoTracking()
+            .Select(ToChannelResponse)
+            .ToListAsync(ct); 
     }
 
     public async Task<ChannelResponse?> GetAsync(int id, CancellationToken ct)
     {
-        var channel = await channelRepository.GetAsync(id, ct);
-        if (channel is null) return null;
-
-        var response = MapToChannelResponse(channel);
-
-        return response;
+        return await db.Channels
+            .AsNoTracking()
+            .Where(c => c.Id == id)
+            .Select(ToChannelResponse)
+            .FirstOrDefaultAsync(ct);
     }
     
     public async Task<ChannelResponse?> CreateAsync(CreateChannelRequest request, CancellationToken ct)
@@ -46,7 +46,8 @@ public sealed class ChannelService(
 
         try
         {
-            await channelRepository.AddAsync(channel, ct);
+            await db.Channels.AddAsync(channel, ct);
+            await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException)
         {
@@ -60,7 +61,7 @@ public sealed class ChannelService(
 
     public async Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct)
     {
-        var channel = await channelRepository.GetAsync(id, ct);
+        var channel = await db.Channels.FindAsync([id], ct);
         if (channel is null) return false;
 
         if (request.CategoryIds is not null)
@@ -78,28 +79,55 @@ public sealed class ChannelService(
         else 
             channel.Categories.Clear();
 
-        await channelRepository.UpdateAsync(channel, ct);
+        db.Channels.Update(channel);
+        await db.SaveChangesAsync(ct);
+        
         return true;
     }
 
     public async Task<bool> UpdateStatusAsync(int id, UpdateChannelStatusRequest request, CancellationToken ct)
     {
-        var channel = await channelRepository.GetAsync(id, ct);
+        var channel = await db.Channels.FindAsync([id], ct);
         if (channel is null) return false;
          
         channel.IsActive = request.IsActive;
-        await channelRepository.UpdateAsync(channel, ct);
+        
+        db.Channels.Update(channel);
+        await db.SaveChangesAsync(ct);
+        
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
-        var channel = await channelRepository.GetAsync(id, ct);
+        var channel = await db.Channels.FindAsync([id], ct);
         if (channel is null) return false;
          
-        await channelRepository.DeleteAsync(channel, ct);
+        db.Channels.Remove(channel);
+        await db.SaveChangesAsync(ct);
+        
         return true;
     }
+    
+    private static readonly Expression<Func<Channel, ChannelResponse>> ToChannelResponse = 
+        channel => new ChannelResponse
+        {
+            Id = channel.Id,
+            YoutubeChannelId = channel.YoutubeChannelId,
+            Name = channel.Name,
+            ThumbnailUrl = channel.ThumbnailUrl,
+            AddedDate = channel.AddedDate,
+            LastCheckedDate = channel.LastCheckedDate,
+            IsActive = channel.IsActive,
+            Categories = channel.Categories
+                .Select(category => new CategoryResponse
+                {
+                    Id = category.Id,
+                    Name = category.Name,
+                    Color = category.Color
+                })
+                .ToList()
+        };
     
     private static ChannelResponse MapToChannelResponse(Channel channel)
     {

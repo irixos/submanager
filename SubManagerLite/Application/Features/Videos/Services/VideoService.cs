@@ -1,15 +1,17 @@
-﻿using SubManagerLite.Application.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Categories.Models;
 using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Features.Videos.Models;
 using SubManagerLite.Application.Interfaces;
+using SubManagerLite.Infrastructure;
 using SubManagerLite.Infrastructure.BackgroundServices;
 
 namespace SubManagerLite.Application.Features.Videos.Services;
 
 public sealed class VideoService(
+    ApplicationDbContext db,
     IVideoRepository videoRepository,
-    IChannelRepository channelRepository,
     IYoutubeVideoIngestService youtubeVideoIngestService,
     IMetadataTaskQueue metadataTaskQueue) : IVideoService
 {
@@ -46,13 +48,15 @@ public sealed class VideoService(
         try
         {
             // get all active channels
-            var activeChannels = await channelRepository.GetAllActiveAsync(ct);
+            var activeChannels = await db.Channels
+                .Where(c => c.IsActive)
+                .ToListAsync(ct);
 
             // get recent videos for each channel
             var recentVideos = await youtubeVideoIngestService.GetRecentVideosAsync(activeChannels, ct);
 
             // update channel last checked date
-            await channelRepository.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
 
             if (recentVideos.Count == 0)
                 return new RefreshResult();
