@@ -40,7 +40,7 @@ public static class ChannelEndpoints
                     : TypedResults.Conflict("Channel already exists");
             });
         
-        group.MapPut("/{id:int}/categories", 
+        group.MapPatch("/{id:int}/categories", 
             async Task<Results<NoContent, NotFound<string>>> (
             int id,
             UpdateChannelCategoriesRequest request,
@@ -53,7 +53,7 @@ public static class ChannelEndpoints
                 : TypedResults.NotFound("Channel not found");
         });
         
-        group.MapPut("/{id:int}/status", 
+        group.MapPatch("/{id:int}/status", 
             async Task<Results<NoContent, NotFound<string>>> (
                 int id,
                 UpdateChannelStatusRequest request,

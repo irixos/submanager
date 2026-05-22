@@ -38,7 +38,7 @@ public static class VideoEndpoints
                     : TypedResults.Conflict("Refresh already in progress");
             });
         
-        group.MapPut("/{id:int}/watched-date", 
+        group.MapPatch("/{id:int}/watched-date", 
             async Task<Results<NoContent, NotFound<string>>> (
             int id,
             UpdateVideoWatchedDateRequest request,
