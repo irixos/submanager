@@ -18,7 +18,7 @@ public sealed class VideoResponse
 
     public VideoChannelResponse Channel { get; init; } = new();
 
-    public List<CategoryResponse> Categories { get; init; } = [];
+    public IReadOnlyCollection<CategoryResponse> Categories { get; init; } = [];
 
     public sealed class VideoChannelResponse
     {

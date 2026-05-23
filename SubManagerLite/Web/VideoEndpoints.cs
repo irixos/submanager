@@ -1,4 +1,4 @@
-﻿using Gridify;
+using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
 using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Features.Videos.Models;
@@ -32,7 +32,7 @@ public static class VideoEndpoints
             });
         
         group.MapPost("/refresh",
-            async Task<Results<Ok<List<VideoResponse>>, Conflict>>(
+            async Task<Results<Ok<IReadOnlyList<VideoResponse>>, Conflict>>(
                 IVideoRefreshService videoRefreshService, 
                 CancellationToken ct) =>
             {

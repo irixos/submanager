@@ -11,5 +11,5 @@ public sealed class ChannelResponse
     public DateTimeOffset AddedDate { get; init; }
     public DateTimeOffset? LastCheckedDate { get; init; }
     public bool IsActive { get; init; }
-    public List<CategoryResponse> Categories { get; init; } = [];
+    public IReadOnlyCollection<CategoryResponse> Categories { get; init; } = [];
 }

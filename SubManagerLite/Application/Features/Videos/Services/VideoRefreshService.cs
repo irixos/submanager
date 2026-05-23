@@ -107,7 +107,7 @@ public sealed class VideoRefreshService(
         await UpdateMetadataAsync(pendingVideoInfos, ct);
     }
 
-    private async Task<List<string>> GetNewVideoIdsAsync(List<string> youtubeVideoIds, CancellationToken ct)
+    private async Task<IReadOnlyCollection<string>> GetNewVideoIdsAsync(IReadOnlyCollection<string> youtubeVideoIds, CancellationToken ct)
     {
         var existingVideoIds = await db.Videos
             .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
@@ -121,7 +121,7 @@ public sealed class VideoRefreshService(
             .ToList();       
     }
     
-    private async Task UpsertRangeAsync(List<Video> videos, CancellationToken ct)
+    private async Task UpsertRangeAsync(IReadOnlyCollection<Video> videos, CancellationToken ct)
     {
         var addedDate = DateTimeOffset.UtcNow;
         

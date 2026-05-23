@@ -10,7 +10,7 @@ public sealed class YoutubeVideoIngestService (
 {
     private const int RefreshWindowDays = 14;
     
-    public async Task<List<Video>> GetRecentVideosAsync(IReadOnlyCollection<Channel> channels, CancellationToken ct)
+    public async Task<IReadOnlyCollection<Video>> GetRecentVideosAsync(IReadOnlyCollection<Channel> channels, CancellationToken ct)
     {
         var recentVideos = new ConcurrentBag<Video>();
         
