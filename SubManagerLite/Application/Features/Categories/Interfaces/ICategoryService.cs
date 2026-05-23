@@ -1,10 +1,11 @@
-﻿using SubManagerLite.Application.Features.Categories.Models;
+﻿using Gridify;
+using SubManagerLite.Application.Features.Categories.Models;
 
 namespace SubManagerLite.Application.Features.Categories.Interfaces;
 
 public interface ICategoryService
 {
-    Task<List<CategoryResponse>> GetAllAsync(CancellationToken ct);
+    Task<Paging<CategoryResponse>> GetAllAsync(GridifyQuery query, CancellationToken ct);
     Task<CategoryResponse?> GetAsync(int id, CancellationToken ct);
     Task<CategoryResponse?> CreateAsync(CreateCategoryRequest request, CancellationToken ct);
     Task<bool> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct);

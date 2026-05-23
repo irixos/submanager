@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Gridify;
+using Gridify.EntityFramework;
+using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
@@ -11,11 +13,11 @@ public sealed class ChannelService(
     ApplicationDbContext db,
     IYoutubeMetadataProvider youtubeMetadataProvider) : IChannelService
 {
-    public async Task<List<ChannelResponse>> GetAllAsync(CancellationToken ct)
+    public async Task<Paging<ChannelResponse>> GetAllAsync(GridifyQuery query, CancellationToken ct)
     {
         return await db.Channels
             .Select(ChannelMappings.ToChannelResponse)
-            .ToListAsync(ct); 
+            .GridifyAsync(query.ClampPageSize(), ct);
     }
 
     public async Task<ChannelResponse?> GetAsync(int id, CancellationToken ct)

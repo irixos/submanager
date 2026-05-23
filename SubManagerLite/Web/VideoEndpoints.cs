@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Gridify;
+using Microsoft.AspNetCore.Http.HttpResults;
 using SubManagerLite.Application.Features.Videos.Interfaces;
 using SubManagerLite.Application.Features.Videos.Models;
 
@@ -9,9 +10,12 @@ public static class VideoEndpoints
    public static RouteGroupBuilder MapVideosApi(this RouteGroupBuilder group)
     {
         group.MapGet("/",
-            async (IVideoService videoService, CancellationToken ct) =>
+            async (
+                [AsParameters] GridifyQuery query, 
+                IVideoService videoService, 
+                CancellationToken ct) =>
             {
-                var response = await videoService.GetAllAsync(ct);
+                var response = await videoService.GetAllAsync(query, ct);
                 return TypedResults.Ok(response);
             });
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Gridify;
+using Microsoft.AspNetCore.Http.HttpResults;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
@@ -10,9 +11,12 @@ public static class ChannelEndpoints
     public static RouteGroupBuilder MapChannelsApi(this RouteGroupBuilder group)
     {
         group.MapGet("/",
-            async (IChannelService channelService, CancellationToken ct) =>
+            async (
+                [AsParameters] GridifyQuery query,
+                IChannelService channelService,
+                CancellationToken ct) =>
             {
-                var response = await channelService.GetAllAsync(ct);
+                var response = await channelService.GetAllAsync(query, ct);
                 return TypedResults.Ok(response);
             });
 

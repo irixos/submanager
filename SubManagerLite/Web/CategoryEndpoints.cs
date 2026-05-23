@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Gridify;
+using Microsoft.AspNetCore.Http.HttpResults;
 using SubManagerLite.Application.Features.Categories.Interfaces;
 using SubManagerLite.Application.Features.Categories.Models;
 
@@ -9,9 +10,12 @@ public static class CategoryEndpoints
     public static RouteGroupBuilder MapCategoriesApi(this RouteGroupBuilder group)
     {
         group.MapGet("/",
-            async (ICategoryService categoryService, CancellationToken ct) =>
+            async (
+                [AsParameters] GridifyQuery query, 
+                ICategoryService categoryService, 
+                CancellationToken ct) =>
             {
-                var response = await categoryService.GetAllAsync(ct);
+                var response = await categoryService.GetAllAsync(query, ct);
                 return TypedResults.Ok(response);
             });
         

@@ -1,4 +1,6 @@
 ﻿using System.Linq.Expressions;
+using Gridify;
+using Gridify.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Categories.Interfaces;
@@ -9,11 +11,11 @@ namespace SubManagerLite.Application.Features.Categories.Services;
 
 public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
 {
-    public async Task<List<CategoryResponse>> GetAllAsync(CancellationToken ct)
+    public async Task<Paging<CategoryResponse>> GetAllAsync(GridifyQuery query, CancellationToken ct)
     {
         return await db.Categories
             .Select(CategoryMappings.ToCategoryResponse)
-            .ToListAsync(ct);
+            .GridifyAsync(query.ClampPageSize(), ct);
     }
     
     public async Task<CategoryResponse?> GetAsync(int id, CancellationToken ct)
