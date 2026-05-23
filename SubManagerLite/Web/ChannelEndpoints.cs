@@ -1,6 +1,5 @@
 ﻿using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
-using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
 
@@ -18,7 +17,11 @@ public static class ChannelEndpoints
             {
                 var response = await channelService.GetAllAsync(query, ct);
                 return TypedResults.Ok(response);
-            });
+            })
+            .WithName("GetChannels")
+            .WithSummary("List channels")
+            .WithDescription("Supports pagination and optional filtering & sorting.");
+            
 
         group.MapGet("/{id:int}",
             async Task<Results<Ok<ChannelResponse>, NotFound>>(
@@ -30,7 +33,10 @@ public static class ChannelEndpoints
                 return response is not null
                     ? TypedResults.Ok(response)
                     : TypedResults.NotFound();
-            });
+            })
+            .WithName("GetChannelById")
+            .WithSummary("Get channel by ID")
+            .ProducesProblem(StatusCodes.Status404NotFound);
         
         group.MapPost("/",
             async Task<Results<Created<ChannelResponse>, Conflict>>(
@@ -42,20 +48,27 @@ public static class ChannelEndpoints
                 return response is not null
                     ? TypedResults.Created($"/channels/{response.Id}", response)
                     : TypedResults.Conflict();
-            });
+            })
+            .WithName("CreateChannel")
+            .WithSummary("Create channel")
+            .WithDescription("Creates a new channel from the provided YouTube channel URL.")
+            .ProducesProblem(StatusCodes.Status409Conflict);
         
         group.MapPatch("/{id:int}/categories", 
             async Task<Results<NoContent, NotFound>> (
-            int id,
-            UpdateChannelCategoriesRequest request,
-            IChannelService channelService,
-            CancellationToken ct) =>
-        {
-            var response = await channelService.UpdateCategoriesAsync(id, request, ct);
-            return response
-                ? TypedResults.NoContent()
-                : TypedResults.NotFound();
-        });
+                int id,
+                UpdateChannelCategoriesRequest request,
+                IChannelService channelService,
+                CancellationToken ct) =>
+            {
+                var response = await channelService.UpdateCategoriesAsync(id, request, ct);
+                return response
+                    ? TypedResults.NoContent()
+                    : TypedResults.NotFound();
+            })
+            .WithName("UpdateChannelCategories")
+            .WithSummary("Update channel categories")
+            .ProducesProblem(StatusCodes.Status404NotFound);
         
         group.MapPatch("/{id:int}/status", 
             async Task<Results<NoContent, NotFound>> (
@@ -68,7 +81,12 @@ public static class ChannelEndpoints
                 return response
                     ? TypedResults.NoContent()
                     : TypedResults.NotFound();
-            });
+            })
+            .WithName("UpdateChannelStatus")
+            .WithSummary("Update channel status")
+            .WithDescription("Sets a channel as active or inactive. Inactive channels will not have their feeds " +
+                             "refreshed.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
         
         group.MapDelete("/{id:int}",
             async Task<Results<NoContent, NotFound>> (
@@ -80,7 +98,10 @@ public static class ChannelEndpoints
                 return response 
                     ? TypedResults.NoContent() 
                     : TypedResults.NotFound();
-            });
+            })
+            .WithName("DeleteChannel")
+            .WithSummary("Delete channel")
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         return group;
     }

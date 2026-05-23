@@ -17,7 +17,10 @@ public static class CategoryEndpoints
             {
                 var response = await categoryService.GetAllAsync(query, ct);
                 return TypedResults.Ok(response);
-            });
+            })
+            .WithName("GetCategories")
+            .WithSummary("List categories")
+            .WithDescription("Supports pagination and optional sorting & filtering.");
         
         group.MapGet("/{id:int}",
             async Task<Results<Ok<CategoryResponse>, NotFound>>(
@@ -29,7 +32,10 @@ public static class CategoryEndpoints
                 return response is not null
                     ? TypedResults.Ok(response)
                     : TypedResults.NotFound();
-            });
+            })
+            .WithName("GetCategoryById")
+            .WithSummary("Get category by ID")
+            .ProducesProblem(StatusCodes.Status404NotFound);
         
         group.MapPost("/",
             async Task<Results<Created<CategoryResponse>, Conflict>>(
@@ -41,7 +47,10 @@ public static class CategoryEndpoints
                 return response is not null
                     ? TypedResults.Created($"/categories/{response.Id}", response)
                     : TypedResults.Conflict();
-            });
+            })
+            .WithName("CreateCategory")
+            .WithSummary("Create category")
+            .ProducesProblem(StatusCodes.Status409Conflict);
         
         group.MapPut("/{id:int}", 
             async Task<Results<NoContent, NotFound>> (
@@ -54,7 +63,10 @@ public static class CategoryEndpoints
             return response
                 ? TypedResults.NoContent()
                 : TypedResults.NotFound();
-        });
+        })
+            .WithName("UpdateCategory")
+            .WithSummary("Update category")
+            .ProducesProblem(StatusCodes.Status404NotFound);
         
         group.MapDelete("/{id:int}",
             async Task<Results<NoContent, NotFound>> (
@@ -66,7 +78,10 @@ public static class CategoryEndpoints
                 return response 
                     ? TypedResults.NoContent() 
                     : TypedResults.NotFound();
-            });
+            })
+            .WithName("DeleteCategory")
+            .WithSummary("Delete category")
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         return group;
     }

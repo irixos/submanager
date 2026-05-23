@@ -18,8 +18,6 @@ builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = ctx =>
     {
         ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier;
-        ctx.ProblemDetails.Extensions["timestamp"] = DateTime.UtcNow;
-        ctx.ProblemDetails.Instance = $"{ctx.HttpContext.Request.Method} {ctx.HttpContext.Request.Path}";
     };
 });
 
@@ -43,12 +41,15 @@ app.UseHttpsRedirection();
 
 // Endpoints
 app.MapGroup("/channels")
+    .WithTags("Channels")
     .MapChannelsApi();
 
 app.MapGroup("/categories")
+    .WithTags("Categories")
     .MapCategoriesApi();
 
 app.MapGroup("/videos")
+    .WithTags("Videos")
     .MapVideosApi();
 
 app.Run();
