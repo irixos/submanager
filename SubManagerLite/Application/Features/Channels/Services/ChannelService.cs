@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SubManagerLite.Application.Entities;
 using SubManagerLite.Application.Features.Channels.Interfaces;
 using SubManagerLite.Application.Features.Channels.Models;
+using SubManagerLite.Application.Features.Channels.Utilities;
 using SubManagerLite.Application.Interfaces;
 using SubManagerLite.Infrastructure;
 
@@ -27,7 +28,7 @@ public sealed class ChannelService(
             .Select(ChannelMappings.ToChannelResponse)
             .FirstOrDefaultAsync(ct);
     }
-    
+
     public async Task<ChannelResponse?> CreateAsync(CreateChannelRequest request, CancellationToken ct)
     {
         var youtubeChannelRef = YoutubeChannelRefParser.Parse(request.ChannelUrl);
@@ -57,6 +58,79 @@ public sealed class ChannelService(
         var response = ChannelMappings.MapToChannelResponse(channel);
         
         return response;
+    }
+    
+    public async Task<ImportChannelsResponse?> ImportAsync(ImportChannelsRequest request, CancellationToken ct)
+    {
+        // get list of refs parsed from file
+        var parsedRefs = await YoutubeChannelRefParser.ParseFile(request.File, ct);
+        if (parsedRefs.Count == 0) return null;
+        
+        // dedupe urls in refs
+        var candidatesById = parsedRefs
+            .GroupBy(YoutubeChannelRefParser.GetChannelId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        
+        // get list of channel ids
+        var candidateIds = candidatesById.Keys.ToList();
+
+        // get list of channels that already exist in db
+        var existingIds = await db.Channels
+            .Where(c => candidateIds.Contains(c.YoutubeChannelId))
+            .Select(c => c.YoutubeChannelId)
+            .ToListAsync(ct);
+        
+        var existingIdSet = existingIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        
+        // filter out channels already present in database
+        var channelsToImport = candidatesById
+            .Where(kvp => !existingIdSet.Contains(kvp.Key))
+            .Select(kvp => kvp.Value)
+            .ToList();
+        
+        // import channels
+        var importedChannels = new List<Channel>();
+        var failedCount = 0;
+        
+        foreach (var channelRef in channelsToImport)
+        {
+            try
+            {
+                var channelInfo = await youtubeMetadataProvider.GetChannelInfo(channelRef, ct);
+
+                importedChannels.Add(new Channel
+                {
+                    YoutubeChannelId = channelInfo.YoutubeChannelId,
+                    Name = channelInfo.Name,
+                    ThumbnailUrl = channelInfo.ThumbnailUrl,
+                    IsActive = true,
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                failedCount++;
+            }
+        }
+
+        await db.Channels.AddRangeAsync(importedChannels, ct);
+        await db.SaveChangesAsync(ct);
+        
+        var importedCount = importedChannels.Count;
+        var candidatesFound = candidatesById.Count;
+        var duplicateCount = existingIdSet.Count;
+        
+        return new ImportChannelsResponse
+        {
+            CandidatesFound = candidatesFound,
+            DuplicateCount = duplicateCount,
+            ImportedCount = importedCount,
+            FailedCount = failedCount,
+            ImportedChannels = importedChannels.Select(ChannelMappings.MapToChannelResponse).ToList()
+        };
     }
 
     public async Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct)

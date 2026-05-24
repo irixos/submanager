@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using SubManagerLite.Application.Features.Channels.Interfaces;
+using Microsoft.IdentityModel.Tokens;
 using SubManagerLite.Application.Features.Channels.Models;
 
-namespace SubManagerLite.Application.Features.Channels.Services;
+namespace SubManagerLite.Application.Features.Channels.Utilities;
 
 public static class YoutubeChannelRefParser
 {
@@ -26,6 +26,10 @@ public static class YoutubeChannelRefParser
 
     private static readonly Regex YouTubeCustomUrlRegex = new(
         $@"^(?<canonical>(?:https?://)?{SupportedYoutubeDomainPattern}/c/[^/?#\s]+)(?:[/?#].*)?$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    
+    private static readonly Regex YoutubeChannelIdFileRegex = new(
+        $@"(?<canonical>(?:https?://)?{SupportedYoutubeDomainPattern}/channel/UC[0-9A-Za-z_-]{{22}})(?:[/?#][^\s""'<]*)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly (Regex Regex, YoutubeChannelRefKind Kind)[] YoutubeUrlRegexes =
@@ -55,6 +59,38 @@ public static class YoutubeChannelRefParser
             "The provided URL is not a valid YouTube channel URL.",
             nameof(channelUrl)
         );
+    }
+
+    public static async Task<IReadOnlyCollection<YoutubeChannelRef>> ParseFile(IFormFile file, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        using var reader = new StreamReader(file.OpenReadStream());
+        var content = await reader.ReadToEndAsync(ct);
+
+        var matches = YoutubeChannelIdFileRegex.Matches(content);
+        if (matches.IsNullOrEmpty()) return [];
+
+        return matches.Select(m => new YoutubeChannelRef(
+            YoutubeChannelRefKind.Id,
+            NormalizeYouTubeUrl(m.Groups["canonical"].Value).ToString()))
+            .ToList();
+    }
+    
+    public static string GetChannelId(YoutubeChannelRef channelRef)
+    {
+        if (channelRef.Kind != YoutubeChannelRefKind.Id)
+            throw new ArgumentException("Channel ref must be an ID ref.", nameof(channelRef));
+
+        var uri = NormalizeYouTubeUrl(channelRef.Url);
+
+        var segments = uri.AbsolutePath
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments is not ["channel", var channelId])
+            throw new ArgumentException("Channel ref URL must be a canonical channel URL.", nameof(channelRef));
+
+        return channelId;
     }
 
     private static string SanitizeUrl(string channelUrl)

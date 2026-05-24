@@ -11,4 +11,5 @@ public interface IChannelService
     Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct);
     Task<bool> UpdateStatusAsync(int id, UpdateChannelStatusRequest request, CancellationToken ct);
     Task<bool> DeleteAsync(int id, CancellationToken ct);
+    Task<ImportChannelsResponse?> ImportAsync(ImportChannelsRequest request, CancellationToken ct);
 }
