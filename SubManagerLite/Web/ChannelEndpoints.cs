@@ -54,10 +54,10 @@ public static class ChannelEndpoints
             .WithSummary("Create channel")
             .WithDescription("Creates a new channel from the provided YouTube channel URL.")
             .ProducesProblem(StatusCodes.Status409Conflict);
-        
+
         group.MapPost("/import",
-            async Task<Results<Ok<ImportChannelsResponse>, BadRequest>>(
-                [FromForm] ImportChannelsRequest request, 
+            async Task<Results<Ok<ImportChannelsResponse>, BadRequest>> (
+                [FromForm] ImportChannelsRequest request,
                 IChannelService channelService,
                 CancellationToken ct) =>
             {
@@ -65,12 +65,11 @@ public static class ChannelEndpoints
                 return response is not null
                     ? TypedResults.Ok(response)
                     : TypedResults.BadRequest();
-            })
+                })
             .WithName("ImportChannels")
             .WithSummary("Import channels")
             .WithDescription("Imports channels from a plaintext file. Scans the file for YouTube channel URLs.")
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .DisableAntiforgery();
+            .ProducesProblem(StatusCodes.Status400BadRequest);
         
         group.MapPatch("/{id:int}/categories", 
             async Task<Results<NoContent, NotFound>> (

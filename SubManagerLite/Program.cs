@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using SubManagerLite.Application;
 using SubManagerLite.Infrastructure;
+using SubManagerLite.Infrastructure.Identity;
 using SubManagerLite.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,10 @@ builder.Services.AddProblemDetails(options =>
 
 builder.Services.AddValidation();
 builder.Services.AddHttpClient();
+builder.Services.AddAuthorization();
+builder.Services.AddAntiforgery();
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 
@@ -39,17 +44,28 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseAntiforgery();
+
+app.MapIdentityApi<ApplicationUser>()
+    .WithTags("Identity");
+
 // Endpoints
 app.MapGroup("/channels")
     .WithTags("Channels")
+    .RequireAuthorization()
     .MapChannelsApi();
 
 app.MapGroup("/categories")
     .WithTags("Categories")
+    .RequireAuthorization()
     .MapCategoriesApi();
 
 app.MapGroup("/videos")
     .WithTags("Videos")
+    .RequireAuthorization()
     .MapVideosApi();
 
 app.Run();
