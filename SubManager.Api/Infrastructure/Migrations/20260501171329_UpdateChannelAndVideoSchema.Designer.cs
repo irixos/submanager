@@ -12,8 +12,8 @@ using SubManagerLite.Infrastructure;
 namespace SubManagerLite.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260420001850_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260501171329_UpdateChannelAndVideoSchema")]
+    partial class UpdateChannelAndVideoSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,7 +40,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("ChannelCategory", (string)null);
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Entities.Category", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,7 +65,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Channel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -76,18 +76,12 @@ namespace SubManagerLite.Migrations
                     b.Property<DateTimeOffset>("AddedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(5000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Handle")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTimeOffset?>("LastCheckedDate")
                         .HasColumnType("datetimeoffset");
@@ -96,9 +90,6 @@ namespace SubManagerLite.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<long?>("SubscriberCount")
-                        .HasColumnType("bigint");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1000)
@@ -117,7 +108,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Channels");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -128,7 +119,7 @@ namespace SubManagerLite.Migrations
                     b.Property<DateTimeOffset>("AddedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.Property<int>("ChannelId")
                         .HasColumnType("int");
@@ -139,7 +130,7 @@ namespace SubManagerLite.Migrations
                     b.Property<DateTimeOffset>("MetadataLastRefreshedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetimeoffset")
-                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.Property<DateTimeOffset>("PublishedDate")
                         .HasColumnType("datetimeoffset");
@@ -176,22 +167,22 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("CategoryChannel", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Entities.Category", null)
+                    b.HasOne("SubManager.Api.Application.Entities.Category", null)
                         .WithMany()
                         .HasForeignKey("CategoriesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SubManagerLite.Api.Entities.Channel", null)
+                    b.HasOne("SubManager.Api.Application.Entities.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Video", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Entities.Channel", "Channel")
+                    b.HasOne("SubManager.Api.Application.Entities.Channel", "Channel")
                         .WithMany("Videos")
                         .HasForeignKey("ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -200,7 +191,7 @@ namespace SubManagerLite.Migrations
                     b.Navigation("Channel");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Channel", b =>
                 {
                     b.Navigation("Videos");
                 });

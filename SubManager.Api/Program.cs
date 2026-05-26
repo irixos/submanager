@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite.Api")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SubManager.Api")));
 
 builder.Services.AddCors(options =>
 {

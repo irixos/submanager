@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="SubManagerLite.Api/SubManagerLite.Api.csproj" />
-  <Project Path="SubManagerLite.Client/SubManagerLite.Client.csproj" />
-</Solution>

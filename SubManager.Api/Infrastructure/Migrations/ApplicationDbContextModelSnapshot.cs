@@ -170,7 +170,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Category", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -195,7 +195,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Channel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -238,7 +238,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Channels");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -295,7 +295,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Videos");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Infrastructure.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("SubManager.Api.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -362,13 +362,13 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("CategoryChannel", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Category", null)
+                    b.HasOne("SubManager.Api.Application.Entities.Category", null)
                         .WithMany()
                         .HasForeignKey("CategoriesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Channel", null)
+                    b.HasOne("SubManager.Api.Application.Entities.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelsId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -386,7 +386,7 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("SubManager.Api.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -395,7 +395,7 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("SubManager.Api.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -410,7 +410,7 @@ namespace SubManagerLite.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SubManagerLite.Api.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("SubManager.Api.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -419,16 +419,16 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("SubManager.Api.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Video", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Channel", "Channel")
+                    b.HasOne("SubManager.Api.Application.Entities.Channel", "Channel")
                         .WithMany("Videos")
                         .HasForeignKey("ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -437,7 +437,7 @@ namespace SubManagerLite.Migrations
                     b.Navigation("Channel");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Application.Entities.Channel", b =>
                 {
                     b.Navigation("Videos");
                 });

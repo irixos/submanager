@@ -12,8 +12,8 @@ using SubManagerLite.Infrastructure;
 namespace SubManagerLite.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260422133504_RemoveHandleDescriptionAndSubscriberCount")]
-    partial class RemoveHandleDescriptionAndSubscriberCount
+    [Migration("20260420001850_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,7 +40,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("ChannelCategory", (string)null);
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Category", b =>
+            modelBuilder.Entity("SubManager.Api.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,7 +65,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Entities.Channel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -78,6 +78,14 @@ namespace SubManagerLite.Migrations
                         .HasColumnType("datetimeoffset")
                         .HasDefaultValueSql("SYSDATETIMEOFFSET()");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Handle")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -88,6 +96,9 @@ namespace SubManagerLite.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<long?>("SubscriberCount")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1000)
@@ -106,7 +117,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Channels");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -165,22 +176,22 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("CategoryChannel", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Category", null)
+                    b.HasOne("SubManager.Api.Entities.Category", null)
                         .WithMany()
                         .HasForeignKey("CategoriesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Channel", null)
+                    b.HasOne("SubManager.Api.Entities.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Video", b =>
+            modelBuilder.Entity("SubManager.Api.Entities.Video", b =>
                 {
-                    b.HasOne("SubManagerLite.Api.Application.Entities.Channel", "Channel")
+                    b.HasOne("SubManager.Api.Entities.Channel", "Channel")
                         .WithMany("Videos")
                         .HasForeignKey("ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -189,7 +200,7 @@ namespace SubManagerLite.Migrations
                     b.Navigation("Channel");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Api.Application.Entities.Channel", b =>
+            modelBuilder.Entity("SubManager.Api.Entities.Channel", b =>
                 {
                     b.Navigation("Videos");
                 });
