@@ -13,6 +13,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite.Api")));
 
 builder.Services.AddProblemDetails(options =>
 {

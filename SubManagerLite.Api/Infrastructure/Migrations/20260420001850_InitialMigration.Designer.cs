@@ -40,7 +40,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("ChannelCategory", (string)null);
                 });
 
-            modelBuilder.Entity("SubManagerLite.Entities.Category", b =>
+            modelBuilder.Entity("SubManagerLite.Api.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,7 +65,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Entities.Channel", b =>
+            modelBuilder.Entity("SubManagerLite.Api.Entities.Channel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -117,7 +117,7 @@ namespace SubManagerLite.Migrations
                     b.ToTable("Channels");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Entities.Video", b =>
+            modelBuilder.Entity("SubManagerLite.Api.Entities.Video", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -176,22 +176,22 @@ namespace SubManagerLite.Migrations
 
             modelBuilder.Entity("CategoryChannel", b =>
                 {
-                    b.HasOne("SubManagerLite.Entities.Category", null)
+                    b.HasOne("SubManagerLite.Api.Entities.Category", null)
                         .WithMany()
                         .HasForeignKey("CategoriesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SubManagerLite.Entities.Channel", null)
+                    b.HasOne("SubManagerLite.Api.Entities.Channel", null)
                         .WithMany()
                         .HasForeignKey("ChannelsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SubManagerLite.Entities.Video", b =>
+            modelBuilder.Entity("SubManagerLite.Api.Entities.Video", b =>
                 {
-                    b.HasOne("SubManagerLite.Entities.Channel", "Channel")
+                    b.HasOne("SubManagerLite.Api.Entities.Channel", "Channel")
                         .WithMany("Videos")
                         .HasForeignKey("ChannelId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -200,7 +200,7 @@ namespace SubManagerLite.Migrations
                     b.Navigation("Channel");
                 });
 
-            modelBuilder.Entity("SubManagerLite.Entities.Channel", b =>
+            modelBuilder.Entity("SubManagerLite.Api.Entities.Channel", b =>
                 {
                     b.Navigation("Videos");
                 });
