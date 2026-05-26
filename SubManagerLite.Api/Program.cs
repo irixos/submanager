@@ -12,8 +12,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite")));
     options.UseSqlServer(builder.Configuration.GetConnectionString("SubManagerLite.Api")));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("BlazorClient", policy =>
+    {
+        policy.WithOrigins("https://localhost:7122")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 builder.Services.AddProblemDetails(options =>
 {
@@ -44,16 +54,15 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseHttpsRedirection();
-
+app.UseCors("BlazorClient");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseAntiforgery();
 
+// Endpoints
 app.MapIdentityApi<ApplicationUser>()
     .WithTags("Identity");
 
-// Endpoints
 app.MapGroup("/channels")
     .WithTags("Channels")
     .RequireAuthorization()
