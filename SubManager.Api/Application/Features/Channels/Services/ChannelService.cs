@@ -1,14 +1,14 @@
 ﻿using Gridify;
 using Gridify.EntityFramework;
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Channels.Interfaces;
-using SubManagerLite.Application.Features.Channels.Models;
-using SubManagerLite.Application.Features.Channels.Utilities;
-using SubManagerLite.Application.Interfaces;
-using SubManagerLite.Infrastructure;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Channels.Interfaces;
+using SubManager.Api.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Channels.Utilities;
+using SubManager.Api.Application.Interfaces;
+using SubManager.Api.Infrastructure;
 
-namespace SubManagerLite.Application.Features.Channels.Services;
+namespace SubManager.Api.Application.Features.Channels.Services;
 
 public sealed class ChannelService(
     ApplicationDbContext db,

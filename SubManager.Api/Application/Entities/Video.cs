@@ -1,4 +1,4 @@
-namespace SubManagerLite.Application.Entities;
+namespace SubManager.Api.Application.Entities;
 
 public class Video
 {

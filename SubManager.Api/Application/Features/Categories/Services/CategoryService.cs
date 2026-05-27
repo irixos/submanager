@@ -2,12 +2,12 @@
 using Gridify;
 using Gridify.EntityFramework;
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Categories.Interfaces;
-using SubManagerLite.Application.Features.Categories.Models;
-using SubManagerLite.Infrastructure;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Categories.Interfaces;
+using SubManager.Api.Application.Features.Categories.Models;
+using SubManager.Api.Infrastructure;
 
-namespace SubManagerLite.Application.Features.Categories.Services;
+namespace SubManager.Api.Application.Features.Categories.Services;
 
 public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
 {

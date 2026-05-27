@@ -1,11 +1,11 @@
-﻿using SubManagerLite.Application.Features.Categories.Interfaces;
-using SubManagerLite.Application.Features.Categories.Services;
-using SubManagerLite.Application.Features.Channels.Interfaces;
-using SubManagerLite.Application.Features.Channels.Services;
-using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Features.Videos.Services;
+﻿using SubManager.Api.Application.Features.Categories.Interfaces;
+using SubManager.Api.Application.Features.Categories.Services;
+using SubManager.Api.Application.Features.Channels.Interfaces;
+using SubManager.Api.Application.Features.Channels.Services;
+using SubManager.Api.Application.Features.Videos.Interfaces;
+using SubManager.Api.Application.Features.Videos.Services;
 
-namespace SubManagerLite.Application;
+namespace SubManager.Api.Application;
 
 public static class ApplicationServiceRegistration
 {

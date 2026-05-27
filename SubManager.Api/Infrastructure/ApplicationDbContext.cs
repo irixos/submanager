@@ -1,10 +1,10 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Infrastructure.Identity;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Infrastructure.Identity;
 
-namespace SubManagerLite.Infrastructure;
+namespace SubManager.Api.Infrastructure;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {

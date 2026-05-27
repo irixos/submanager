@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SubManagerLite.Application;
+namespace SubManager.Api.Application;
 
 public class MaxFileSizeAttribute(long maxFileSize) : ValidationAttribute
 {

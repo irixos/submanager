@@ -1,7 +1,7 @@
-using SubManagerLite.Application.Features.Channels.Models;
-using SubManagerLite.Application.Features.Videos.Models;
+using SubManager.Api.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Videos.Models;
 
-namespace SubManagerLite.Application.Interfaces;
+namespace SubManager.Api.Application.Interfaces;
 
 public interface IYoutubeMetadataProvider
 {

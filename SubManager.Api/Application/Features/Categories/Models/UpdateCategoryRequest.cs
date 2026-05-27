@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SubManagerLite.Application.Features.Categories.Models;
+namespace SubManager.Api.Application.Features.Categories.Models;
 
 public sealed class UpdateCategoryRequest : IValidatableObject
 {

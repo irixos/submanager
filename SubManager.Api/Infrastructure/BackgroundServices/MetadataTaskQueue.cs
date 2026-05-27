@@ -1,6 +1,6 @@
 ﻿using System.Threading.Channels;
 
-namespace SubManagerLite.Infrastructure.BackgroundServices;
+namespace SubManager.Api.Infrastructure.BackgroundServices;
 
 public sealed class MetadataTaskQueue : IMetadataTaskQueue
 {

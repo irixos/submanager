@@ -1,9 +1,9 @@
 ﻿using System.Linq.Expressions;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Categories.Models;
-using SubManagerLite.Application.Features.Videos.Models;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Videos.Models;
 
-namespace SubManagerLite.Application.Features.Videos;
+namespace SubManager.Api.Application.Features.Videos;
 
 public static class VideoMappings
 {

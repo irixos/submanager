@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SubManagerLite.Application;
+namespace SubManager.Api.Application;
 
 public sealed class AllowedExtensionsAttribute(params string[] extensions) : ValidationAttribute
 {

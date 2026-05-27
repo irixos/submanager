@@ -1,7 +1,7 @@
 ﻿using Gridify;
-using SubManagerLite.Application.Features.Videos.Models;
+using SubManager.Api.Application.Features.Videos.Models;
 
-namespace SubManagerLite.Application.Features.Videos.Interfaces;
+namespace SubManager.Api.Application.Features.Videos.Interfaces;
 
 public interface IVideoService
 {

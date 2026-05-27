@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SubManagerLite.Infrastructure;
+using SubManager.Api.Infrastructure;
 
 #nullable disable
 
-namespace SubManagerLite.Migrations
+namespace SubManager.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260524182811_AddIdentityCoreEntities")]

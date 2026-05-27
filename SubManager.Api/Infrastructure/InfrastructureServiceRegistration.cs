@@ -1,9 +1,9 @@
-﻿using SubManagerLite.Application.Interfaces;
-using SubManagerLite.Infrastructure.BackgroundServices;
-using SubManagerLite.Infrastructure.Integrations;
+﻿using SubManager.Api.Application.Interfaces;
+using SubManager.Api.Infrastructure.BackgroundServices;
+using SubManager.Api.Infrastructure.Integrations;
 using YoutubeExplode;
 
-namespace SubManagerLite.Infrastructure;
+namespace SubManager.Api.Infrastructure;
 
 public static class InfrastructureServiceRegistration
 {

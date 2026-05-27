@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Features.Videos.Models;
-using SubManagerLite.Application.Interfaces;
-using SubManagerLite.Infrastructure;
-using SubManagerLite.Infrastructure.BackgroundServices;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Videos.Interfaces;
+using SubManager.Api.Application.Features.Videos.Models;
+using SubManager.Api.Application.Interfaces;
+using SubManager.Api.Infrastructure;
+using SubManager.Api.Infrastructure.BackgroundServices;
 
-namespace SubManagerLite.Application.Features.Videos.Services;
+namespace SubManager.Api.Application.Features.Videos.Services;
 
 public sealed class VideoRefreshService(
     ApplicationDbContext db,

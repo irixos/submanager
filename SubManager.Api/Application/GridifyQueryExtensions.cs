@@ -1,6 +1,6 @@
 ﻿using Gridify;
 
-namespace SubManagerLite.Application;
+namespace SubManager.Api.Application;
 
 public static class GridifyQueryExtensions
 {

@@ -1,10 +1,10 @@
 ﻿using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using SubManagerLite.Application.Features.Channels.Interfaces;
-using SubManagerLite.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Channels.Interfaces;
+using SubManager.Api.Application.Features.Channels.Models;
 
-namespace SubManagerLite.Web;
+namespace SubManager.Api.Web;
 
 public static class ChannelEndpoints
 {

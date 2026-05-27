@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.IdentityModel.Tokens;
-using SubManagerLite.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Channels.Models;
 
-namespace SubManagerLite.Application.Features.Channels.Utilities;
+namespace SubManager.Api.Application.Features.Channels.Utilities;
 
 public static class YoutubeChannelRefParser
 {

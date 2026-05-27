@@ -1,4 +1,4 @@
-﻿namespace SubManagerLite.Infrastructure.BackgroundServices;
+﻿namespace SubManager.Api.Infrastructure.BackgroundServices;
 
 public interface IMetadataTaskQueue
 {

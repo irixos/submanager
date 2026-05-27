@@ -1,7 +1,7 @@
 ﻿using Gridify;
-using SubManagerLite.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Channels.Models;
 
-namespace SubManagerLite.Application.Features.Channels.Interfaces;
+namespace SubManager.Api.Application.Features.Channels.Interfaces;
 
 public interface IChannelService
 {

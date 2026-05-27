@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Xml.Linq;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Videos.Interfaces;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Videos.Interfaces;
 
-namespace SubManagerLite.Application.Features.Videos.Services;
+namespace SubManager.Api.Application.Features.Videos.Services;
 
 public sealed class YoutubeVideoIngestService (
     IHttpClientFactory httpClientFactory) : IYoutubeVideoIngestService

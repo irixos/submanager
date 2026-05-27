@@ -1,9 +1,9 @@
 ﻿using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
-using SubManagerLite.Application.Features.Categories.Interfaces;
-using SubManagerLite.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Categories.Interfaces;
+using SubManager.Api.Application.Features.Categories.Models;
 
-namespace SubManagerLite.Web;
+namespace SubManager.Api.Web;
 
 public static class CategoryEndpoints
 {

@@ -1,7 +1,7 @@
 ﻿using Gridify;
-using SubManagerLite.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Categories.Models;
 
-namespace SubManagerLite.Application.Features.Categories.Interfaces;
+namespace SubManager.Api.Application.Features.Categories.Interfaces;
 
 public interface ICategoryService
 {

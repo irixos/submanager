@@ -1,8 +1,8 @@
 ﻿using System.Linq.Expressions;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Categories.Models;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Categories.Models;
 
-namespace SubManagerLite.Application.Features.Categories;
+namespace SubManager.Api.Application.Features.Categories;
 
 public static class CategoryMappings
 {

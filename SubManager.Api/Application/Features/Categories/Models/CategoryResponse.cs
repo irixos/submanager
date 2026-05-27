@@ -1,4 +1,4 @@
-namespace SubManagerLite.Application.Features.Categories.Models;
+namespace SubManager.Api.Application.Features.Categories.Models;
 
 public sealed class CategoryResponse
 {

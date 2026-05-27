@@ -1,4 +1,4 @@
-﻿namespace SubManagerLite.Application.Features.Channels.Models;
+﻿namespace SubManager.Api.Application.Features.Channels.Models;
 
 public sealed record YoutubeChannelInfo
 {

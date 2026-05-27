@@ -1,9 +1,9 @@
 using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
-using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Features.Videos.Models;
+using SubManager.Api.Application.Features.Videos.Interfaces;
+using SubManager.Api.Application.Features.Videos.Models;
 
-namespace SubManagerLite.Web;
+namespace SubManager.Api.Web;
 
 public static class VideoEndpoints
 {

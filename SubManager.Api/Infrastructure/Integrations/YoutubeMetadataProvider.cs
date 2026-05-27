@@ -1,10 +1,10 @@
-﻿using SubManagerLite.Application.Features.Channels.Models;
-using SubManagerLite.Application.Features.Videos.Models;
-using SubManagerLite.Application.Interfaces;
+﻿using SubManager.Api.Application.Features.Channels.Models;
+using SubManager.Api.Application.Features.Videos.Models;
+using SubManager.Api.Application.Interfaces;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
-namespace SubManagerLite.Infrastructure.Integrations;
+namespace SubManager.Api.Infrastructure.Integrations;
 
 public sealed class YoutubeMetadataProvider(YoutubeClient youtubeClient) : IYoutubeMetadataProvider
 {

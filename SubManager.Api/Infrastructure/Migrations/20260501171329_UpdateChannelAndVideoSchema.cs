@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace SubManagerLite.Migrations
+namespace SubManager.Api.Migrations
 {
     /// <inheritdoc />
     public partial class UpdateChannelAndVideoSchema : Migration

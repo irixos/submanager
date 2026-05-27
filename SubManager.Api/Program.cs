@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
-using SubManagerLite.Application;
-using SubManagerLite.Infrastructure;
-using SubManagerLite.Infrastructure.Identity;
-using SubManagerLite.Web;
+using SubManager.Api.Application;
+using SubManager.Api.Infrastructure;
+using SubManager.Api.Infrastructure.Identity;
+using SubManager.Api.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 

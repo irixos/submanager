@@ -1,11 +1,11 @@
 ﻿using Gridify;
 using Gridify.EntityFramework;
 using Microsoft.EntityFrameworkCore;
-using SubManagerLite.Application.Features.Videos.Interfaces;
-using SubManagerLite.Application.Features.Videos.Models;
-using SubManagerLite.Infrastructure;
+using SubManager.Api.Application.Features.Videos.Interfaces;
+using SubManager.Api.Application.Features.Videos.Models;
+using SubManager.Api.Infrastructure;
 
-namespace SubManagerLite.Application.Features.Videos.Services;
+namespace SubManager.Api.Application.Features.Videos.Services;
 
 public sealed class VideoService(ApplicationDbContext db) : IVideoService
 {

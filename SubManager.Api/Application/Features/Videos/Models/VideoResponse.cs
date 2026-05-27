@@ -1,6 +1,6 @@
-using SubManagerLite.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Categories.Models;
 
-namespace SubManagerLite.Application.Features.Videos.Models;
+namespace SubManager.Api.Application.Features.Videos.Models;
 
 public sealed class VideoResponse
 {

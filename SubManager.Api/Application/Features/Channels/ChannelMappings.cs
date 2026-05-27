@@ -1,9 +1,9 @@
 ﻿using System.Linq.Expressions;
-using SubManagerLite.Application.Entities;
-using SubManagerLite.Application.Features.Categories.Models;
-using SubManagerLite.Application.Features.Channels.Models;
+using SubManager.Api.Application.Entities;
+using SubManager.Api.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Channels.Models;
 
-namespace SubManagerLite.Application.Features.Channels;
+namespace SubManager.Api.Application.Features.Channels;
 
 public static class ChannelMappings
 {

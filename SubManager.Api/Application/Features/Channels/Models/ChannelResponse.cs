@@ -1,6 +1,6 @@
-using SubManagerLite.Application.Features.Categories.Models;
+using SubManager.Api.Application.Features.Categories.Models;
 
-namespace SubManagerLite.Application.Features.Channels.Models;
+namespace SubManager.Api.Application.Features.Channels.Models;
 
 public sealed class ChannelResponse
 {

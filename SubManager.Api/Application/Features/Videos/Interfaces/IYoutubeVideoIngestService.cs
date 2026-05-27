@@ -1,6 +1,6 @@
-using SubManagerLite.Application.Entities;
+using SubManager.Api.Application.Entities;
 
-namespace SubManagerLite.Application.Features.Videos.Interfaces;
+namespace SubManager.Api.Application.Features.Videos.Interfaces;
 
 public interface IYoutubeVideoIngestService
 {
