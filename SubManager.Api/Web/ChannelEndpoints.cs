@@ -57,7 +57,7 @@ public static class ChannelEndpoints
 
         group.MapPost("/import",
             async Task<Results<Ok<ImportChannelsResponse>, BadRequest>> (
-                [FromForm] ImportChannelsRequest request,
+                ImportChannelsRequest request,
                 IChannelService channelService,
                 CancellationToken ct) =>
             {
@@ -66,6 +66,7 @@ public static class ChannelEndpoints
                     ? TypedResults.Ok(response)
                     : TypedResults.BadRequest();
                 })
+            .Accepts<ImportChannelsRequest>("multipart/form-data")
             .WithName("ImportChannels")
             .WithSummary("Import channels")
             .WithDescription("Imports channels from a plaintext file. Scans the file for YouTube channel URLs.")
