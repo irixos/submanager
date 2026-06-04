@@ -1,0 +1,34 @@
+﻿@page "/login"
+@using SubManager.ApiClient
+@inject IdentityClient IdentityClient
+
+<PageTitle>Login</PageTitle>
+
+<EditForm Model="@loginRequest" OnValidSubmit="OnValidSubmit">
+<DataAnnotationsValidator/>
+<MudGrid>
+    <MudItem xs="12" sm="7">
+        <MudCard>
+            <MudCardContent>
+                <MudTextField Label="Email" Class="mt-3"
+                              @bind-Value="@loginRequest.Email" For="@(() => loginRequest.Email)"/>
+                <MudTextField Label="Password" Class="mt-3" InputType="InputType.Password"
+                              @bind-Value="@loginRequest.Password" For="@(() => loginRequest.Password)"/>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Login</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem> 
+</MudGrid>
+</EditForm>
+
+@code {
+    private LoginRequest loginRequest = new();
+
+    private void OnValidSubmit(EditContext editContext)
+    {
+        IdentityClient.LoginAsync(true, false, loginRequest);
+        StateHasChanged();
+    }
+}
