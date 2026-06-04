@@ -14,6 +14,13 @@
         <MudLink Href="https://learn.microsoft.com/aspnet/core/" Target="_blank" Color="Color.Inherit" Underline="Underline.None">
             About
         </MudLink>
+        <MudButton Href="login"
+                   Color="Color.Inherit"
+                   Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.AccountCircle"
+                   Class="ml-2">
+            Sign in
+        </MudButton>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
