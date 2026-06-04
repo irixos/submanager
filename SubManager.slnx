@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="SubManager.Api/SubManager.Api.csproj" />
-  <Project Path="SubManager.ApiClient/Submanager.ApiClient.csproj" />
+  <Project Path="SubManager.ApiClient/SubManager.ApiClient.csproj" />
   <Project Path="SubManager.Client/SubManager.Client.csproj" />
 </Solution>
