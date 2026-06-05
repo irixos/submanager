@@ -3932,6 +3932,9 @@ namespace SubManager.ApiClient
         [System.Text.Json.Serialization.JsonPropertyName("isWatched")]
         public bool? IsWatched { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("isShort")]
+        public bool? IsShort { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("channel")]
         public VideoChannelResponse? Channel { get; set; } = default!;
 

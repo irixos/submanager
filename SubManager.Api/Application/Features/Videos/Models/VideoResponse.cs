@@ -15,6 +15,7 @@ public sealed class VideoResponse
     public int? DurationSeconds { get; init; }
     public long? ViewCount { get; init; }
     public bool IsWatched { get; init; }
+    public bool IsShort { get; init; }
 
     public VideoChannelResponse Channel { get; init; } = new();
 

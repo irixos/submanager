@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using SubManager.Api.Application.Entities;
 using SubManager.Api.Application.Features.Videos.Interfaces;
+using static SubManager.Api.Application.Features.YouTubeUrlPatterns;
 
 namespace SubManager.Api.Application.Features.Videos.Services;
 
@@ -44,6 +46,7 @@ public sealed class YoutubeVideoIngestService (
                 var mediaGroup = video.Element(media + "group");
                 var mediaCommunity = mediaGroup?.Element(media + "community");
 
+                var videoUrl = video.Element(atom + "link")?.Attribute("href")?.Value;
                 var videoId = video.Element(yt + "videoId")?.Value;
                 var title = video.Element(atom + "title")?.Value;
                 var thumbnailUrl = mediaGroup?.Element(media + "thumbnail")?.Attribute("url")?.Value;
@@ -71,7 +74,7 @@ public sealed class YoutubeVideoIngestService (
                         $"Video {videoId} skipped for being outside the {refreshWindow.Days} day refresh window. Last published: {publishedDate}");
                     continue;
                 }
-
+                
                 recentVideos.Add(new Video
                 {
                     YoutubeVideoId = videoId,
@@ -81,6 +84,7 @@ public sealed class YoutubeVideoIngestService (
                     PublishedDate = dtoPublishedDate,
                     MetadataLastRefreshedAt = utcNow,
                     ViewCount = long.TryParse(viewCount, out var views) ? views : null,
+                    IsShort = !string.IsNullOrWhiteSpace(videoUrl) && (YouTubeShortUrlRegex.IsMatch(videoUrl))
                 });
             }
 

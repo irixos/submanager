@@ -21,6 +21,7 @@ public static class VideoMappings
             DurationSeconds = video.DurationSeconds,
             ViewCount = video.ViewCount,
             IsWatched = video.IsWatched,
+            IsShort = video.IsShort,
             
             Channel = new VideoResponse.VideoChannelResponse
             {

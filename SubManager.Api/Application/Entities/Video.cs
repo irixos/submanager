@@ -37,6 +37,11 @@ public class Video
     /// Computed property indicating if the video has been watched
     /// </summary>
     public bool IsWatched => WatchedDate.HasValue;
+    
+    /// <summary>
+    /// Indicates whether the video is a YouTube Short.
+    /// </summary>
+    public bool IsShort { get; set; }
 
     // Navigation properties
     public Channel Channel { get; set; } = null!;
