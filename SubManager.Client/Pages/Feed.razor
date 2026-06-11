@@ -1,0 +1,53 @@
+﻿@page "/feed"
+@using SubManager.ApiClient
+@using Humanizer
+@inject VideosClient VideosClient
+
+<PageTitle>Feed</PageTitle>
+
+@if (videoPage == null)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else if (videoPage.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No channels found</MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var video in videoPage.Data)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard>
+                    <MudCardMedia Image="@video.ThumbnailUrl"/>
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
+                            <MudAvatar>
+                                <img src="@video.Channel.ThumbnailUrl" alt="@video.Channel.Name"/>
+                            </MudAvatar>
+                            <MudStack>
+                                <MudText><strong>@video.Title</strong></MudText>
+                                <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
+                                    <MudText>@video.Channel.Name</MudText>
+                                    <MudText>@video.ViewCount?.ToMetric(decimals: 0)</MudText>
+                                    <MudText>@video.PublishedDate?.Humanize()</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+    
+@code {
+    private PagingOfVideoResponse? videoPage;
+    private int pageSize = 20;
+
+    protected override async Task OnInitializedAsync()
+    {
+        videoPage = await VideosClient.GetVideosAsync(1, pageSize, "PublishedDate desc","IsShort = false");
+    }
+}
