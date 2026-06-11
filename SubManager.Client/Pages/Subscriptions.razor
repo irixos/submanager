@@ -1,0 +1,43 @@
+﻿@page "/subscriptions"
+@using SubManager.ApiClient
+@inject ChannelsClient ChannelsClient;
+
+<PageTitle>Subscriptions</PageTitle>
+
+@if (channelPage == null)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else if (channelPage.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No channels found</MudAlert>
+}
+else
+{
+    <MudList T="string">
+        @foreach (var channel in channelPage.Data)
+        {
+            <MudListItem>
+                <AvatarContent>
+                    <MudAvatar>
+                        <MudImage Src="@channel.ThumbnailUrl" />
+                    </MudAvatar>
+                </AvatarContent>
+                <ChildContent>
+                    @channel.Name
+                </ChildContent>
+            </MudListItem>
+        }
+    </MudList>
+}
+    
+
+@code {
+    private PagingOfChannelResponse? channelPage;
+    private int pageSize = 20;
+
+    protected override async Task OnInitializedAsync()
+    {
+        channelPage = await ChannelsClient.GetChannelsAsync(1, pageSize, "Name",null);
+    }
+}
