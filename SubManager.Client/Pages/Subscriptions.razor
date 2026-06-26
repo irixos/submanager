@@ -1,43 +1,105 @@
-﻿@page "/subscriptions"
+@page "/subscriptions"
 @using SubManager.ApiClient
-@inject ChannelsClient ChannelsClient;
+@inject ChannelsClient ChannelsClient
 
 <PageTitle>Subscriptions</PageTitle>
 
-@if (channelPage == null)
+@if (!hasLoaded && isLoading)
 {
     <MudProgressCircular Color="Color.Default" Indeterminate="true" />
 }
-else if (channelPage.Count == 0)
+else if (loadError is not null && channels.Count == 0)
+{
+    <MudAlert Severity="Severity.Error">
+        Unable to load channels.
+        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchChannels">Retry</MudButton>
+    </MudAlert>
+}
+else if (hasLoaded && channels.Count == 0)
 {
     <MudAlert Severity="Severity.Info">No channels found</MudAlert>
 }
 else
 {
-    <MudList T="string">
-        @foreach (var channel in channelPage.Data)
+    <InfiniteScroll ItemCount="channels.Count"
+                    HasMore="hasMoreChannels && loadError is null"
+                    IsLoading="isLoading"
+                    LoadMore="FetchChannels">
+        <MudList T="string">
+            @foreach (var channel in channels)
+            {
+                <MudListItem @key="channel.Id">
+                    <AvatarContent>
+                        <MudAvatar>
+                            <MudImage Src="@channel.ThumbnailUrl" />
+                        </MudAvatar>
+                    </AvatarContent>
+                    <ChildContent>
+                        @channel.Name
+                    </ChildContent>
+                </MudListItem>
+            }
+        </MudList>
+
+        @if (isLoading)
         {
-            <MudListItem>
-                <AvatarContent>
-                    <MudAvatar>
-                        <MudImage Src="@channel.ThumbnailUrl" />
-                    </MudAvatar>
-                </AvatarContent>
-                <ChildContent>
-                    @channel.Name
-                </ChildContent>
-            </MudListItem>
+            <MudProgressCircular Class="mt-4" Color="Color.Default" Indeterminate="true" />
         }
-    </MudList>
+
+        @if (loadError is not null)
+        {
+            <MudAlert Class="mt-4" Severity="Severity.Error">
+                Unable to load more channels.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchChannels">Retry</MudButton>
+            </MudAlert>
+        }
+    </InfiniteScroll>
 }
-    
 
 @code {
-    private PagingOfChannelResponse? channelPage;
-    private int pageSize = 20;
+    private readonly List<ChannelResponse> channels = [];
+    private const int PageSize = 20;
+    private int currentPage = 1;
+    private bool isLoading;
+    private bool hasLoaded;
+    private bool hasMoreChannels = true;
+    private Exception? loadError;
 
     protected override async Task OnInitializedAsync()
     {
-        channelPage = await ChannelsClient.GetChannelsAsync(1, pageSize, "Name",null);
+        await FetchChannels();
+    }
+
+    private async Task FetchChannels()
+    {
+        if (isLoading || !hasMoreChannels)
+            return;
+
+        isLoading = true;
+        loadError = null;
+
+        try
+        {
+            var channelPage = await ChannelsClient.GetChannelsAsync(
+                currentPage, PageSize, "Name, Id", null);
+
+            var newChannels = channelPage.Data?.ToList() ?? [];
+            channels.AddRange(newChannels);
+            currentPage++;
+
+            hasMoreChannels = newChannels.Count > 0 &&
+                (channelPage.Count.HasValue
+                    ? channels.Count < channelPage.Count.Value
+                    : newChannels.Count == PageSize);
+        }
+        catch (Exception exception)
+        {
+            loadError = exception;
+        }
+        finally
+        {
+            isLoading = false;
+            hasLoaded = true;
+        }
     }
 }

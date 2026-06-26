@@ -1,0 +1,88 @@
+@inject IScrollListenerFactory ScrollListenerFactory
+@implements IAsyncDisposable
+
+@ChildContent
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public EventCallback LoadMore { get; set; }
+
+    [Parameter]
+    public bool HasMore { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public int ItemCount { get; set; }
+
+    [Parameter]
+    public int ThresholdPx { get; set; } = 300;
+
+    private IScrollListener? _scrollListener;
+    private bool _loadRequested;
+    private int _lastCheckedItemCount = -1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scrollListener is null)
+        {
+            _scrollListener = ScrollListenerFactory.Create(string.Empty, 100);
+            _scrollListener.OnScroll += OnScroll;
+        }
+
+        if (!IsLoading && HasMore && ItemCount != _lastCheckedItemCount)
+        {
+            _lastCheckedItemCount = ItemCount;
+            var scrollData = await _scrollListener.GetCurrentScrollDataAsync();
+            await TryLoadMoreAsync(scrollData);
+        }
+    }
+
+    private async void OnScroll(object? sender, ScrollEventArgs scrollData)
+    {
+        try
+        {
+            await InvokeAsync(() => TryLoadMoreAsync(scrollData));
+        }
+        catch
+        {
+            // Loading errors are handled by the component using InfiniteScroll.
+        }
+    }
+
+    private async Task TryLoadMoreAsync(ScrollEventArgs scrollData)
+    {
+        if (_loadRequested || IsLoading || !HasMore)
+            return;
+
+        var distanceFromBottom =
+            scrollData.ScrollHeight - (scrollData.ScrollTop + scrollData.ClientHeight);
+
+        if (distanceFromBottom > ThresholdPx)
+            return;
+
+        _loadRequested = true;
+
+        try
+        {
+            await LoadMore.InvokeAsync();
+        }
+        finally
+        {
+            _loadRequested = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_scrollListener is null)
+            return;
+
+        _scrollListener.OnScroll -= OnScroll;
+        await _scrollListener.DisposeAsync();
+    }
+}

@@ -1,53 +1,116 @@
-﻿@page "/feed"
+@page "/feed"
 @using SubManager.ApiClient
 @using Humanizer
 @inject VideosClient VideosClient
 
 <PageTitle>Feed</PageTitle>
 
-@if (videoPage == null)
+@if (!hasLoaded && isLoading)
 {
     <MudProgressCircular Color="Color.Default" Indeterminate="true" />
 }
-else if (videoPage.Count == 0)
+else if (loadError is not null && videos.Count == 0)
 {
-    <MudAlert Severity="Severity.Info">No channels found</MudAlert>
+    <MudAlert Severity="Severity.Error">
+        Unable to load videos.
+        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchVideos">Retry</MudButton>
+    </MudAlert>
+}
+else if (hasLoaded && videos.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No videos found</MudAlert>
 }
 else
 {
-    <MudGrid>
-        @foreach (var video in videoPage.Data)
-        {
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard>
-                    <MudCardMedia Image="@video.ThumbnailUrl"/>
-                    <MudCardContent>
-                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
-                            <MudAvatar>
-                                <img src="@video.Channel.ThumbnailUrl" alt="@video.Channel.Name"/>
-                            </MudAvatar>
-                            <MudStack>
-                                <MudText><strong>@video.Title</strong></MudText>
-                                <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
-                                    <MudText>@video.Channel.Name</MudText>
-                                    <MudText>@video.ViewCount?.ToMetric(decimals: 0)</MudText>
-                                    <MudText>@video.PublishedDate?.Humanize()</MudText>
+    <InfiniteScroll ItemCount="videos.Count"
+                    HasMore="hasMoreVideos && loadError is null"
+                    IsLoading="isLoading"
+                    LoadMore="FetchVideos">
+        <MudGrid>
+            @foreach (var video in videos)
+            {
+                <MudItem @key="video.Id" xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardMedia Image="@video.ThumbnailUrl"/>
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
+                                <MudAvatar>
+                                    <img src="@video.Channel?.ThumbnailUrl" alt="@video.Channel?.Name"/>
+                                </MudAvatar>
+                                <MudStack>
+                                    <MudText><strong>@video.Title</strong></MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
+                                        <MudText>@video.Channel?.Name</MudText>
+                                        <MudText>@video.ViewCount?.ToMetric(decimals: 0)</MudText>
+                                        <MudText>@video.PublishedDate?.Humanize()</MudText>
+                                    </MudStack>
                                 </MudStack>
                             </MudStack>
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+
+        @if (isLoading)
+        {
+            <MudProgressCircular Class="mt-4" Color="Color.Default" Indeterminate="true" />
         }
-    </MudGrid>
+
+        @if (loadError is not null)
+        {
+            <MudAlert Class="mt-4" Severity="Severity.Error">
+                Unable to load more videos.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchVideos">Retry</MudButton>
+            </MudAlert>
+        }
+    </InfiniteScroll>
 }
-    
+
 @code {
-    private PagingOfVideoResponse? videoPage;
-    private int pageSize = 20;
+    private readonly List<VideoResponse> videos = [];
+    private const int PageSize = 20;
+    private int currentPage = 1;
+    private bool isLoading;
+    private bool hasLoaded;
+    private bool hasMoreVideos = true;
+    private Exception? loadError;
 
     protected override async Task OnInitializedAsync()
     {
-        videoPage = await VideosClient.GetVideosAsync(1, pageSize, "PublishedDate desc","IsShort = false");
+        await FetchVideos();
+    }
+
+    private async Task FetchVideos()
+    {
+        if (isLoading || !hasMoreVideos)
+            return;
+
+        isLoading = true;
+        loadError = null;
+
+        try
+        {
+            var videoPage = await VideosClient.GetVideosAsync(
+                currentPage, PageSize, "PublishedDate desc, Id desc", "IsShort = false");
+
+            var newVideos = videoPage.Data?.ToList() ?? [];
+            videos.AddRange(newVideos);
+            currentPage++;
+
+            hasMoreVideos = newVideos.Count > 0 &&
+                (videoPage.Count.HasValue
+                    ? videos.Count < videoPage.Count.Value
+                    : newVideos.Count == PageSize);
+        }
+        catch (Exception exception)
+        {
+            loadError = exception;
+        }
+        finally
+        {
+            isLoading = false;
+            hasLoaded = true;
+        }
     }
 }
