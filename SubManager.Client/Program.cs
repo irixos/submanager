@@ -6,6 +6,7 @@ using MudBlazor.Services;
 using SubManager.ApiClient;
 using SubManager.Client.Authentication;
 using SubManager.Client.Http;
+using SubManager.Client.Layout;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -32,5 +33,6 @@ builder.Services.AddScoped<IdentityClient>();
 builder.Services.AddScoped<ApiAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<ApiAuthenticationStateProvider>());
+builder.Services.AddScoped<AppThemeState>();
 
 await builder.Build().RunAsync();

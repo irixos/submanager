@@ -1,10 +1,16 @@
 @inherits LayoutComponentBase
+@inject AppThemeState ThemeState
 
-<MudThemeProvider IsDarkMode="true" />
+<MudThemeProvider Theme="ThemeState.Theme" IsDarkMode="ThemeState.IsDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
-    @Body
-</MudContainer>
+<MudLayout>
+    <MudStack AlignItems="AlignItems.End" Class="ma-4">
+        <MudIconButton Icon="@ThemeState.Icon" OnClick="ThemeState.Toggle" />
+    </MudStack>
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+        @Body
+    </MudContainer>
+</MudLayout>
