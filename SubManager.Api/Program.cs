@@ -63,6 +63,11 @@ app.UseAntiforgery();
 app.MapIdentityApi<ApplicationUser>()
     .WithTags("Identity");
 
+app.MapGroup("/identity")
+    .WithTags("Identity")
+    .RequireAuthorization()
+    .MapIdentityEndpoints();
+
 app.MapGroup("/channels")
     .WithTags("Channels")
     .RequireAuthorization()
