@@ -1,34 +1,121 @@
-﻿@page "/login"
+@page "/login"
+@layout LoginLayout
+@implements IDisposable
 @using SubManager.ApiClient
+@using SubManager.Client.Authentication
 @inject IdentityClient IdentityClient
+@inject ApiAuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 
 <PageTitle>Login</PageTitle>
 
-<EditForm Model="@loginRequest" OnValidSubmit="OnValidSubmit">
-<DataAnnotationsValidator/>
-<MudGrid>
-    <MudItem xs="12" sm="7">
-        <MudCard>
-            <MudCardContent>
-                <MudTextField Label="Email" Class="mt-3"
-                              @bind-Value="@loginRequest.Email" For="@(() => loginRequest.Email)"/>
-                <MudTextField Label="Password" Class="mt-3" InputType="InputType.Password"
-                              @bind-Value="@loginRequest.Password" For="@(() => loginRequest.Password)"/>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Login</MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem> 
-</MudGrid>
+<EditForm EditContext="editContext" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h5">SubManager</MudText>
+            @if (errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+            }
+            <MudTextField Label="Email" Class="mt-3"
+                          @bind-Value="loginRequest.Email" For="@(() => loginRequest.Email)" />
+            <MudTextField Label="Password" Class="mt-3" InputType="InputType.Password"
+                          @bind-Value="loginRequest.Password" For="@(() => loginRequest.Password)" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton ButtonType="ButtonType.Button" Variant="Variant.Text" OnClick="Register" Disabled="isSubmitting">
+                Register
+            </MudButton>
+            <MudSpacer />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="isSubmitting">
+                @(isSubmitting ? "Please wait" : "Login")
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
 </EditForm>
 
 @code {
-    private LoginRequest loginRequest = new();
+    private readonly LoginRequest loginRequest = new();
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private EditContext editContext = default!;
+    private string? errorMessage;
+    private bool isSubmitting;
 
-    private void OnValidSubmit(EditContext editContext)
+    protected override async Task OnInitializedAsync()
     {
-        IdentityClient.LoginAsync(true, false, loginRequest);
-        StateHasChanged();
+        editContext = new EditContext(loginRequest);
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated == true)
+            NavigationManager.NavigateTo("/feed", replace: true);
+    }
+
+    private Task HandleLogin() => Submit(register: false);
+
+    private async Task Register()
+    {
+        if (editContext.Validate())
+            await Submit(register: true);
+    }
+
+    private async Task Submit(bool register)
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            if (register)
+            {
+                await IdentityClient.RegisterAsync(new RegisterRequest
+                {
+                    Email = loginRequest.Email,
+                    Password = loginRequest.Password
+                }, cancellationTokenSource.Token);
+            }
+
+            await LoginWithCookies();
+            await AuthenticationStateProvider.RefreshAsync();
+            NavigationManager.NavigateTo("/feed", replace: true);
+        }
+        catch (ApiException<HttpValidationProblemDetails> exception)
+        {
+            errorMessage = exception.Result.Errors is null
+                ? exception.Result.Title ?? "Unable to register."
+                : string.Join(" ", exception.Result.Errors.Values.SelectMany(messages => messages));
+        }
+        catch (ApiException exception)
+        {
+            errorMessage = exception.StatusCode == 401
+                ? "Invalid email or password."
+                : register ? "Unable to register." : "Unable to log in.";
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Unable to reach the server.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task LoginWithCookies()
+    {
+        try
+        {
+            await IdentityClient.LoginAsync(true, false, loginRequest, cancellationTokenSource.Token);
+        }
+        catch (ApiException exception) when (exception.StatusCode == 200)
+        {
+            // Cookie login returns an empty 200 response, while the generated client expects a token body.
+        }
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource.Cancel();
+        cancellationTokenSource.Dispose();
     }
 }

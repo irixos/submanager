@@ -1,5 +1,9 @@
 @inherits LayoutComponentBase
 @implements IAsyncDisposable
+@using SubManager.ApiClient
+@using SubManager.Client.Authentication
+@inject IdentityClient IdentityClient
+@inject ApiAuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -16,13 +20,9 @@
         @* <MudLink Href="https://learn.microsoft.com/aspnet/core/" Target="_blank" Color="Color.Inherit" Underline="Underline.None">
             About
         </MudLink> *@
-        <MudButton Href="login"
-                   Color="Color.Inherit"
-                   Variant="Variant.Text"
-                   StartIcon="@Icons.Material.Filled.AccountCircle"
-                   Class="ml-2">
-            Sign in
-        </MudButton>
+        <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit">
+            <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
+        </MudMenu>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
@@ -38,6 +38,7 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode = true;
     private MudTheme? _theme;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     protected override void OnInitialized()
     {
@@ -84,7 +85,16 @@
     public ValueTask DisposeAsync()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    private async Task Logout()
+    {
+        await IdentityClient.LogoutAsync(_cancellationTokenSource.Token);
+        await AuthenticationStateProvider.RefreshAsync();
+        NavigationManager.NavigateTo("/login", replace: true);
     }
 
     private void DrawerToggle()
