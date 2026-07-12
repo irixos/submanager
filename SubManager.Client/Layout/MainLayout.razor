@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@implements IAsyncDisposable
+@inject NavigationManager NavigationManager
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -8,7 +10,7 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
-        <MudText Typo="Typo.h6" Class="ml-2"></MudText>
+        <MudText Typo="Typo.h6" Class="ml-2">@PageName</MudText>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
         @* <MudLink Href="https://learn.microsoft.com/aspnet/core/" Target="_blank" Color="Color.Inherit" Underline="Underline.None">
@@ -41,12 +43,48 @@
     {
         base.OnInitialized();
 
+        NavigationManager.LocationChanged += OnLocationChanged;
+
         _theme = new()
         {
             PaletteLight = _lightPalette,
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
+    }
+
+    private string PageName
+    {
+        get
+        {
+            var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+                .Split('?', '#')[0]
+                .Trim('/');
+
+            if (path.Length == 0)
+                return "Feed";
+
+            var segment = Uri.UnescapeDataString(path.Split('/')[^1]).Replace('-', ' ');
+            return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(segment);
+        }
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            await DispatchExceptionAsync(exception);
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        return ValueTask.CompletedTask;
     }
 
     private void DrawerToggle()
