@@ -9,7 +9,7 @@
 
 <PageTitle>Login</PageTitle>
 
-<EditForm EditContext="editContext" OnValidSubmit="HandleLogin">
+<EditForm EditContext="editContext" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator />
     <MudCard>
         <MudCardContent>
@@ -24,14 +24,32 @@
                           @bind-Value="loginRequest.Password" For="@(() => loginRequest.Password)" />
         </MudCardContent>
         <MudCardActions>
-            <MudButton ButtonType="ButtonType.Button" Variant="Variant.Text" OnClick="Register" Disabled="isSubmitting">
-                Register
-            </MudButton>
             <MudSpacer />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Login" Disabled="isSubmitting">
-                @(isSubmitting ? "Please wait" : "Login")
-            </MudButton>
+            @if (isLoadingSetup)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else if (canRegister is null)
+            {
+                <MudButton ButtonType="ButtonType.Button" Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadSetupStatus">
+                    Retry
+                </MudButton>
+            }
+            else if (canRegister.Value)
+            {
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PersonAdd" Disabled="isSubmitting">
+                    @(isSubmitting ? "Please wait" : "Register")
+                </MudButton>
+            }
+            else
+            {
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Login" Disabled="isSubmitting">
+                    @(isSubmitting ? "Please wait" : "Login")
+                </MudButton>
+            }
         </MudCardActions>
     </MudCard>
 </EditForm>
@@ -41,6 +59,8 @@
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private EditContext editContext = default!;
     private string? errorMessage;
+    private bool? canRegister;
+    private bool isLoadingSetup = true;
     private bool isSubmitting;
 
     protected override async Task OnInitializedAsync()
@@ -49,15 +69,39 @@
 
         var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         if (authenticationState.User.Identity?.IsAuthenticated == true)
+        {
             NavigationManager.NavigateTo("/feed", replace: true);
+            return;
+        }
+
+        await LoadSetupStatus();
     }
 
-    private Task HandleLogin() => Submit(register: false);
+    private Task HandleSubmit() => Submit(register: canRegister == true);
 
-    private async Task Register()
+    private async Task LoadSetupStatus()
     {
-        if (editContext.Validate())
-            await Submit(register: true);
+        isLoadingSetup = true;
+        canRegister = null;
+        errorMessage = null;
+
+        try
+        {
+            var status = await IdentityClient.SetupStatusAsync(cancellationTokenSource.Token);
+            canRegister = status.CanRegister;
+        }
+        catch (ApiException)
+        {
+            errorMessage = "Unable to determine whether registration is available.";
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Unable to reach the server.";
+        }
+        finally
+        {
+            isLoadingSetup = false;
+        }
     }
 
     private async Task Submit(bool register)
@@ -88,9 +132,17 @@
         }
         catch (ApiException exception)
         {
-            errorMessage = exception.StatusCode == 401
-                ? "Invalid email or password."
-                : register ? "Unable to register." : "Unable to log in.";
+            if (register && exception.StatusCode == 409)
+            {
+                canRegister = false;
+                errorMessage = "An account already exists. Log in instead.";
+            }
+            else
+            {
+                errorMessage = exception.StatusCode == 401
+                    ? "Invalid email or password."
+                    : register ? "Unable to register." : "Unable to log in.";
+            }
         }
         catch (HttpRequestException)
         {
