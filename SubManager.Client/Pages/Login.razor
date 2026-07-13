@@ -12,12 +12,12 @@
 
 @if (AuthenticationStateProvider.IsUnavailable)
 {
-    <MudAlert Severity="Severity.Error">
-        Unable to verify authentication.
-        <MudButton Variant="Variant.Text" Color="Color.Error"
-                   Disabled="isRetryingAuthentication" OnClick="RetryAuthentication">
-            Retry
-        </MudButton>
+    <MudAlert Severity="Severity.Error" Class="authentication-alert">
+        <span>Unable to verify authentication.</span>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Error" Size="Size.Small"
+                       aria-label="Retry authentication" title="Retry authentication"
+                       Disabled="isRetryingAuthentication" OnClick="RetryAuthentication" />
     </MudAlert>
 }
 else
