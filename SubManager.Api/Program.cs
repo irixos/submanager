@@ -60,12 +60,14 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 // Endpoints
-app.MapIdentityApi<ApplicationUser>()
+var identityApi = app.MapGroup(string.Empty)
+    .AddEndpointFilter<SingleUserRegistrationFilter>();
+
+identityApi.MapIdentityApi<ApplicationUser>()
     .WithTags("Identity");
 
 app.MapGroup("/identity")
     .WithTags("Identity")
-    .RequireAuthorization()
     .MapIdentityEndpoints();
 
 app.MapGroup("/channels")
