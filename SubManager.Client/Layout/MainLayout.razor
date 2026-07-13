@@ -6,6 +6,7 @@
 @inject ApiAuthenticationStateProvider AuthenticationStateProvider
 @inject AppThemeState ThemeState
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
 <MudThemeProvider Theme="ThemeState.Theme" IsDarkMode="ThemeState.IsDarkMode" />
 <MudPopoverProvider />
@@ -24,7 +25,7 @@
                          Color="Color.Inherit"
                          AnchorOrigin="Origin.BottomRight"
                          TransformOrigin="Origin.TopRight">
-                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout">Logout</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout" Disabled="_isLoggingOut">Logout</MudMenuItem>
                 </MudMenu>
             </MudAppBar>
 
@@ -44,6 +45,7 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isLoggingOut;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     protected override void OnInitialized()
@@ -92,9 +94,39 @@
 
     private async Task Logout()
     {
-        await IdentityClient.LogoutAsync(_cancellationTokenSource.Token);
-        await AuthenticationStateProvider.RefreshAsync();
-        NavigationManager.NavigateTo("/login", replace: true);
+        if (_isLoggingOut)
+            return;
+
+        _isLoggingOut = true;
+        try
+        {
+            try
+            {
+                await IdentityClient.LogoutAsync(_cancellationTokenSource.Token);
+            }
+            catch (ApiException exception) when (exception.StatusCode == 401)
+            {
+                // The session has already expired.
+            }
+
+            AuthenticationStateProvider.MarkAnonymous();
+            NavigationManager.NavigateTo("/login", replace: true);
+        }
+        catch (OperationCanceledException) when (_cancellationTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (ApiException)
+        {
+            Snackbar.Add("Unable to log out. Please try again.", Severity.Error);
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Unable to reach the server.", Severity.Error);
+        }
+        finally
+        {
+            _isLoggingOut = false;
+        }
     }
 
     private void DrawerToggle()

@@ -1,15 +1,28 @@
 @page "/login"
 @layout LoginLayout
-@implements IDisposable
+@implements IAsyncDisposable
 @using SubManager.ApiClient
 @using SubManager.Client.Authentication
 @inject IdentityClient IdentityClient
+@inject HttpClient HttpClient
 @inject ApiAuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 
 <PageTitle>Login</PageTitle>
 
-<EditForm EditContext="editContext" OnValidSubmit="HandleSubmit">
+@if (AuthenticationStateProvider.IsUnavailable)
+{
+    <MudAlert Severity="Severity.Error">
+        Unable to verify authentication.
+        <MudButton Variant="Variant.Text" Color="Color.Error"
+                   Disabled="isRetryingAuthentication" OnClick="RetryAuthentication">
+            Retry
+        </MudButton>
+    </MudAlert>
+}
+else
+{
+<EditForm Model="loginRequest" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator />
     <MudCard>
         <MudCardContent>
@@ -53,28 +66,40 @@
         </MudCardActions>
     </MudCard>
 </EditForm>
+}
 
 @code {
     private readonly LoginRequest loginRequest = new();
     private readonly CancellationTokenSource cancellationTokenSource = new();
-    private EditContext editContext = default!;
     private string? errorMessage;
     private bool? canRegister;
     private bool isLoadingSetup = true;
     private bool isSubmitting;
+    private bool isRetryingAuthentication;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        editContext = new EditContext(loginRequest);
-
-        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (authenticationState.User.Identity?.IsAuthenticated == true)
+        try
         {
-            NavigationManager.NavigateTo("/feed", replace: true);
-            return;
-        }
+            var authenticationState = await AuthenticationStateProvider.RefreshAsync(cancellationTokenSource.Token);
+            if (AuthenticationStateProvider.IsUnavailable)
+                return;
 
-        await LoadSetupStatus();
+            if (authenticationState.User.Identity?.IsAuthenticated == true)
+            {
+                NavigateFromLogin();
+                return;
+            }
+
+            await LoadSetupStatus();
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
+        }
     }
 
     private Task HandleSubmit() => Submit(register: canRegister == true);
@@ -89,6 +114,9 @@
         {
             var status = await IdentityClient.SetupStatusAsync(cancellationTokenSource.Token);
             canRegister = status.CanRegister;
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
         }
         catch (ApiException)
         {
@@ -118,11 +146,20 @@
                     Email = loginRequest.Email,
                     Password = loginRequest.Password
                 }, cancellationTokenSource.Token);
+                canRegister = false;
             }
 
-            await LoginWithCookies();
-            await AuthenticationStateProvider.RefreshAsync();
-            NavigationManager.NavigateTo("/feed", replace: true);
+            if (!await LoginWithCookies())
+                return;
+
+            var authenticationState = await AuthenticationStateProvider.RefreshAsync(cancellationTokenSource.Token);
+            if (authenticationState.User.Identity?.IsAuthenticated == true)
+                NavigateFromLogin();
+            else if (!AuthenticationStateProvider.IsUnavailable)
+                errorMessage = "Unable to log in.";
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
         }
         catch (ApiException<HttpValidationProblemDetails> exception)
         {
@@ -154,21 +191,60 @@
         }
     }
 
-    private async Task LoginWithCookies()
+    private async Task<bool> LoginWithCookies()
     {
+        using var response = await HttpClient.PostAsJsonAsync(
+            "login?useCookies=true&useSessionCookies=false",
+            loginRequest,
+            cancellationTokenSource.Token);
+
+        if (response.IsSuccessStatusCode)
+            return true;
+
+        errorMessage = response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+            ? "Invalid email or password."
+            : "Unable to log in.";
+        return false;
+    }
+
+    private async Task RetryAuthentication()
+    {
+        isRetryingAuthentication = true;
         try
         {
-            await IdentityClient.LoginAsync(true, false, loginRequest, cancellationTokenSource.Token);
+            var authenticationState = await AuthenticationStateProvider.RefreshAsync(cancellationTokenSource.Token);
+            if (authenticationState.User.Identity?.IsAuthenticated == true)
+                NavigateFromLogin();
+            else if (!AuthenticationStateProvider.IsUnavailable)
+                await LoadSetupStatus();
         }
-        catch (ApiException exception) when (exception.StatusCode == 200)
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
         {
-            // Cookie login returns an empty 200 response, while the generated client expects a token body.
+        }
+        finally
+        {
+            isRetryingAuthentication = false;
         }
     }
 
-    public void Dispose()
+    private void NavigateFromLogin()
+    {
+        var baseUri = new Uri(NavigationManager.BaseUri);
+        if (ReturnUrl is not null &&
+            Uri.TryCreate(baseUri, ReturnUrl, out var returnUri) &&
+            baseUri.IsBaseOf(returnUri))
+        {
+            NavigationManager.NavigateTo(returnUri.ToString(), replace: true);
+            return;
+        }
+
+        NavigationManager.NavigateTo("/feed", replace: true);
+    }
+
+    public ValueTask DisposeAsync()
     {
         cancellationTokenSource.Cancel();
         cancellationTokenSource.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

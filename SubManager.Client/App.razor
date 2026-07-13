@@ -1,10 +1,47 @@
-﻿<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@using SubManager.Client.Authentication
+@inject ApiAuthenticationStateProvider AuthenticationStateProvider
+
+<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <Authorizing>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+                    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+                </MudStack>
+            </Authorizing>
             <NotAuthorized>
-                <RedirectToLogin />
+                @if (AuthenticationStateProvider.IsUnavailable)
+                {
+                    <div role="alert">
+                        <p>Unable to verify authentication.</p>
+                        <button type="button" disabled="@isRetryingAuthentication" @onclick="RetryAuthentication">
+                            Retry
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
 </Router>
+
+@code {
+    private bool isRetryingAuthentication;
+
+    private async Task RetryAuthentication()
+    {
+        isRetryingAuthentication = true;
+        try
+        {
+            await AuthenticationStateProvider.RefreshAsync();
+        }
+        finally
+        {
+            isRetryingAuthentication = false;
+        }
+    }
+}
