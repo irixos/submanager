@@ -1,0 +1,23 @@
+<MudAlert Severity="Severity.Error" Class="@Class">
+    <span>@ChildContent</span>
+    @if (OnRetry.HasDelegate)
+    {
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Error" Size="Size.Small"
+                       aria-label="Retry" title="Retry" Disabled="RetryDisabled" OnClick="OnRetry" />
+    }
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [Parameter]
+    public bool RetryDisabled { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+}

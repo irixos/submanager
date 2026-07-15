@@ -12,13 +12,9 @@
 
 @if (AuthenticationStateProvider.IsUnavailable)
 {
-    <MudAlert Severity="Severity.Error" Class="authentication-alert">
-        <span>Unable to verify authentication.</span>
-        <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Error" Size="Size.Small"
-                       aria-label="Retry authentication" title="Retry authentication"
-                       Disabled="isRetryingAuthentication" OnClick="RetryAuthentication" />
-    </MudAlert>
+    <ErrorAlert OnRetry="RetryAuthentication" RetryDisabled="isRetryingAuthentication">
+        Unable to verify authentication.
+    </ErrorAlert>
 }
 else
 {
@@ -29,7 +25,7 @@ else
             <MudText Typo="Typo.h5">SubManager</MudText>
             @if (errorMessage is not null)
             {
-                <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+                <ErrorAlert Class="mt-3">@errorMessage</ErrorAlert>
             }
             <MudTextField Label="Email" Class="mt-3"
                           @bind-Value="loginRequest.Email" For="@(() => loginRequest.Email)" />

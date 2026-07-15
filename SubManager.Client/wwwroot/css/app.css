@@ -2,11 +2,11 @@ html, body {
     font-family: 'Roboto', Helvetica, Arial, sans-serif;
 }
 
-.authentication-alert .mud-alert-position {
+.mud-alert-text-error .mud-alert-position {
     align-items: center;
 }
 
-.authentication-alert .mud-alert-message {
+.mud-alert-text-error .mud-alert-message {
     align-items: center;
     display: flex;
     flex: 1;

@@ -12,12 +12,9 @@
             <NotAuthorized>
                 @if (AuthenticationStateProvider.IsUnavailable)
                 {
-                    <div role="alert">
-                        <p>Unable to verify authentication.</p>
-                        <button type="button" disabled="@isRetryingAuthentication" @onclick="RetryAuthentication">
-                            Retry
-                        </button>
-                    </div>
+                    <ErrorAlert OnRetry="RetryAuthentication" RetryDisabled="isRetryingAuthentication">
+                        Unable to verify authentication.
+                    </ErrorAlert>
                 }
                 else
                 {

@@ -11,10 +11,9 @@
 }
 else if (loadError is not null && channels.Count == 0)
 {
-    <MudAlert Severity="Severity.Error">
+    <ErrorAlert OnRetry="FetchChannels">
         Unable to load channels.
-        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchChannels">Retry</MudButton>
-    </MudAlert>
+    </ErrorAlert>
 }
 else if (hasLoaded && channels.Count == 0)
 {
@@ -49,10 +48,9 @@ else
 
         @if (loadError is not null)
         {
-            <MudAlert Class="mt-4" Severity="Severity.Error">
+            <ErrorAlert Class="mt-4" OnRetry="FetchChannels">
                 Unable to load more channels.
-                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchChannels">Retry</MudButton>
-            </MudAlert>
+            </ErrorAlert>
         }
     </InfiniteScroll>
 }

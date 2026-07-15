@@ -12,10 +12,9 @@
 }
 else if (loadError is not null && videos.Count == 0)
 {
-    <MudAlert Severity="Severity.Error">
+    <ErrorAlert OnRetry="FetchVideos">
         Unable to load videos.
-        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchVideos">Retry</MudButton>
-    </MudAlert>
+    </ErrorAlert>
 }
 else if (hasLoaded && videos.Count == 0)
 {
@@ -60,10 +59,9 @@ else
 
         @if (loadError is not null)
         {
-            <MudAlert Class="mt-4" Severity="Severity.Error">
+            <ErrorAlert Class="mt-4" OnRetry="FetchVideos">
                 Unable to load more videos.
-                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="FetchVideos">Retry</MudButton>
-            </MudAlert>
+            </ErrorAlert>
         }
     </InfiniteScroll>
 }
