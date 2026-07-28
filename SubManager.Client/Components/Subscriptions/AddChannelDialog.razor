@@ -62,11 +62,7 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private Task OnCategoriesChanged(IReadOnlyCollection<int> categoryIds)
-    {
-        selectedCategoryIds = categoryIds;
-        return Task.CompletedTask;
-    }
+    private void OnCategoriesChanged(IReadOnlyCollection<int> categoryIds) => selectedCategoryIds = categoryIds;
 
     private async Task AddCategory()
     {

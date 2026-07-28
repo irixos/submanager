@@ -1,3 +1,4 @@
+@implements IAsyncDisposable
 @using MudBlazor.Utilities
 @using SubManager.ApiClient
 @inject CategoriesClient CategoriesClient
@@ -46,6 +47,7 @@
         "#F9A825", "#F57C00", "#E64A19", "#5D4037", "#455A64"
     ];
 
+    private readonly CancellationTokenSource cancellationTokenSource = new();
     private MudForm? form;
     private string name = string.Empty;
     private MudColor color = new(Palette[0]);
@@ -82,7 +84,7 @@
             {
                 Name = name.Trim(),
                 Color = color.ToString(MudColorOutputFormats.Hex)
-            });
+            }, cancellationTokenSource.Token);
 
             MudDialog.Close(DialogResult.Ok(category));
         }
@@ -102,5 +104,11 @@
         {
             isSaving = false;
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
     }
 }

@@ -5,6 +5,12 @@
     gap: 0.75rem;
 }
 
+.import-file-label:focus-within {
+    border-radius: 4px;
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 4px;
+}
+
 ::deep .import-file-input {
     height: 1px;
     opacity: 0;

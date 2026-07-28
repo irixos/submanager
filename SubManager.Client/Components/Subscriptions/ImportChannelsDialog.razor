@@ -1,4 +1,5 @@
 @implements IAsyncDisposable
+@using Humanizer
 @using SubManager.ApiClient
 @inject ChannelsClient ChannelsClient
 
@@ -20,7 +21,7 @@
             </MudPaper>
             @if (file is not null)
             {
-                <MudText Typo="Typo.caption">@FormatSize(file.Size)</MudText>
+                <MudText Typo="Typo.caption">@file.Size.Bytes().Humanize()</MudText>
             }
             @if ((validationError ?? error) is { } message)
             {
@@ -106,13 +107,6 @@
         {
             isImporting = false;
         }
-    }
-
-    private static string FormatSize(long bytes)
-    {
-        return bytes < 1024
-            ? $"{bytes} bytes"
-            : $"{bytes / 1024d:0.#} KB";
     }
 
     public async ValueTask DisposeAsync()

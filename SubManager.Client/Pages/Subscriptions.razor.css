@@ -10,3 +10,12 @@
     object-fit: cover;
     width: 100%;
 }
+
+.subscription-thumbnail-inactive {
+    filter: grayscale(1);
+    opacity: 0.5;
+}
+
+.subscription-name-inactive {
+    color: var(--mud-palette-text-disabled);
+}

@@ -77,11 +77,13 @@ else
                             <img src="@channel.ThumbnailUrl"
                                  alt="@channel.Name"
                                  referrerpolicy="no-referrer"
-                                 class="subscription-thumbnail" />
+                                 class="subscription-thumbnail @(channel.IsActive is true ? null : "subscription-thumbnail-inactive")" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
-                        @channel.Name
+                        <span class="@(channel.IsActive is true ? null : "subscription-name-inactive")">
+                            @channel.Name
+                        </span>
                     </ChildContent>
                 </MudListItem>
             }
@@ -114,7 +116,6 @@ else
     private readonly List<CategoryResponse> categories = [];
     private readonly CancellationTokenSource lifetimeCancellationTokenSource = new();
     private CancellationTokenSource loadCancellationTokenSource = new();
-    private CancellationTokenSource? searchCancellationTokenSource;
     private IReadOnlyCollection<int> selectedCategoryIds = [];
     private string searchText = string.Empty;
     private int currentPage = 1;
@@ -290,24 +291,7 @@ else
     private async Task SearchChanged(string value)
     {
         searchText = value;
-
-        if (searchCancellationTokenSource is not null)
-        {
-            await searchCancellationTokenSource.CancelAsync();
-            searchCancellationTokenSource.Dispose();
-        }
-
-        searchCancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = searchCancellationTokenSource.Token;
-
-        try
-        {
-            await Task.Delay(300, cancellationToken);
-            await RefreshChannels();
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
+        await RefreshChannels();
     }
 
     private async Task CategoriesChanged(IReadOnlyCollection<int> categoryIds)
@@ -327,11 +311,6 @@ else
     {
         await lifetimeCancellationTokenSource.CancelAsync();
         await loadCancellationTokenSource.CancelAsync();
-        if (searchCancellationTokenSource is not null)
-        {
-            await searchCancellationTokenSource.CancelAsync();
-            searchCancellationTokenSource.Dispose();
-        }
 
         lifetimeCancellationTokenSource.Dispose();
         loadCancellationTokenSource.Dispose();

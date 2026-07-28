@@ -19,11 +19,11 @@
 
     @if (AllowCreate)
     {
-        <MudChip T="int"
-                 Disabled="Disabled"
-                 OnClick="AddRequested"
-                 Label="true"
-                 aria-label="Add category">+</MudChip>
+        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       Disabled="Disabled"
+                       OnClick="AddRequested"
+                       aria-label="Add category" />
     }
 </MudChipSet>
 
