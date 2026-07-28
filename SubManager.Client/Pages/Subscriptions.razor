@@ -18,6 +18,8 @@
                      ImportRequested="ImportChannels"
                      AddCategoryRequested="AddCategory"
                      ManageCategoriesRequested="ManageCategories"
+                     ShowCategories="showCategories"
+                     ShowCategoriesChanged="@((bool value) => showCategories = value)"
                      ClearRequested="ClearFilters" />
 
 @if (categoryLoadError is not null)
@@ -73,21 +75,10 @@ else
         <MudList T="string">
             @foreach (var channel in channels)
             {
-                <MudListItem @key="channel.Id" OnClick="@(() => EditChannel(channel))">
-                    <AvatarContent>
-                        <MudAvatar>
-                            <img src="@channel.ThumbnailUrl"
-                                 alt="@channel.Name"
-                                 referrerpolicy="no-referrer"
-                                 class="subscription-thumbnail @(channel.IsActive is true ? null : "subscription-thumbnail-inactive")" />
-                        </MudAvatar>
-                    </AvatarContent>
-                    <ChildContent>
-                        <span class="@(channel.IsActive is true ? null : "subscription-name-inactive")">
-                            @channel.Name
-                        </span>
-                    </ChildContent>
-                </MudListItem>
+                <SubscriptionListItem @key="channel.Id"
+                                      Channel="channel"
+                                      ShowCategories="showCategories"
+                                      Selected="EditChannel" />
             }
         </MudList>
 
@@ -124,6 +115,7 @@ else
     private bool isLoading;
     private bool hasLoaded;
     private bool hasMoreChannels = true;
+    private bool showCategories;
     private Exception? loadError;
     private Exception? categoryLoadError;
 

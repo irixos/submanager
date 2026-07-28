@@ -1,0 +1,77 @@
+@using SubManager.ApiClient
+
+<MudListItem T="string" OnClick="@(() => Selected.InvokeAsync(Channel))">
+    <AvatarContent>
+        <MudAvatar>
+            <img src="@Channel.ThumbnailUrl"
+                 alt="@Channel.Name"
+                 referrerpolicy="no-referrer"
+                 class="subscription-thumbnail @(Channel.IsActive is true ? null : "subscription-thumbnail-inactive")" />
+        </MudAvatar>
+    </AvatarContent>
+    <ChildContent>
+        <div class="subscription-content">
+            <span class="subscription-name @(Channel.IsActive is true ? null : "subscription-name-inactive")">
+                @Channel.Name
+            </span>
+            @if (ShowCategories)
+            {
+                <div class="category-summary @(Channel.IsActive is true ? null : "category-summary-inactive")">
+                    @if (categories.Count == 0)
+                    {
+                        <span class="uncategorized">Uncategorized</span>
+                    }
+                    else
+                    {
+                        @foreach (var category in categories.Take(2))
+                        {
+                            <span @key="category.Id"
+                                  class="category-mini-chip"
+                                  style="@GetChipStyle(category)"
+                                  title="@category.Name">
+                                @category.Name
+                            </span>
+                        }
+
+                        @if (categories.Count > 2)
+                        {
+                            var additionalCount = categories.Count - 2;
+                            var additionalNames = string.Join(", ", categories.Skip(2).Select(category => category.Name));
+                            <span class="category-overflow"
+                                  title="@additionalNames"
+                                  aria-label="@($"{additionalCount} additional categories")">
+                                +@additionalCount
+                            </span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </ChildContent>
+</MudListItem>
+
+@code {
+    private IReadOnlyList<CategoryResponse> categories = [];
+
+    [Parameter, EditorRequired]
+    public ChannelResponse Channel { get; set; } = null!;
+
+    [Parameter]
+    public bool ShowCategories { get; set; }
+
+    [Parameter]
+    public EventCallback<ChannelResponse> Selected { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        categories = Channel.Categories?
+            .OrderBy(category => category.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? [];
+    }
+
+    private static string GetChipStyle(CategoryResponse category)
+    {
+        var color = CategoryColor.Normalize(category.Color);
+        return $"background-color: {color}; color: {CategoryColor.GetForeground(color)};";
+    }
+}

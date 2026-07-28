@@ -27,15 +27,20 @@
                                aria-label="Import subscriptions" />
             </MudTooltip>
             <MudTooltip Text="Category options">
-                <MudMenu Icon="@Icons.Material.Filled.Label"
+                <MudMenu @ref="categoryMenu"
+                         Icon="@Icons.Material.Filled.Label"
+                         AriaLabel="Category options"
                          AnchorOrigin="Origin.BottomRight"
-                         TransformOrigin="Origin.TopRight"
-                         aria-label="Category options">
-                    <MudMenuItem Icon="@Icons.Material.Filled.Add" OnClick="AddCategoryRequested">
+                         TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Add" OnClick="AddCategory">
                         Add category
                     </MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="ManageCategoriesRequested">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="ManageCategories">
                         Manage categories
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@(ShowCategories ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
+                                 OnClick="ToggleCategoryVisibility">
+                        Show categories in list
                     </MudMenuItem>
                 </MudMenu>
             </MudTooltip>
@@ -76,6 +81,7 @@
 </div>
 
 @code {
+    private MudMenu? categoryMenu;
     private string searchValue = string.Empty;
     private bool showSearch;
     private bool showFilters;
@@ -105,6 +111,12 @@
     public EventCallback ManageCategoriesRequested { get; set; }
 
     [Parameter]
+    public bool ShowCategories { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowCategoriesChanged { get; set; }
+
+    [Parameter]
     public EventCallback ClearRequested { get; set; }
 
     private bool HasActiveFilters =>
@@ -118,6 +130,24 @@
     private void ToggleSearch() => showSearch = !showSearch;
 
     private void ToggleFilters() => showFilters = !showFilters;
+
+    private async Task AddCategory()
+    {
+        await categoryMenu!.CloseMenuAsync();
+        await AddCategoryRequested.InvokeAsync();
+    }
+
+    private async Task ManageCategories()
+    {
+        await categoryMenu!.CloseMenuAsync();
+        await ManageCategoriesRequested.InvokeAsync();
+    }
+
+    private async Task ToggleCategoryVisibility()
+    {
+        await categoryMenu!.CloseMenuAsync();
+        await ShowCategoriesChanged.InvokeAsync(!ShowCategories);
+    }
 
     private async Task OnSearchChanged(string value)
     {
