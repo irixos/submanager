@@ -1,0 +1,107 @@
+@using SubManager.ApiClient
+
+<div class="subscriptions-toolbar">
+<MudPaper Square="true" Elevation="1" Class="pa-2 mb-3">
+    <MudStack Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd">
+            <MudSpacer />
+            @if (HasActiveFilters)
+            {
+                <MudButton Size="Size.Small" OnClick="ClearRequested">Clear filters</MudButton>
+            }
+            <MudTooltip Text="Search subscriptions">
+                <MudIconButton Icon="@Icons.Material.Filled.Search"
+                               Color="@(showSearch ? Color.Primary : Color.Default)"
+                               OnClick="ToggleSearch"
+                               aria-label="Search subscriptions" />
+            </MudTooltip>
+            <MudTooltip Text="Filter by category">
+                <MudIconButton Icon="@Icons.Material.Filled.FilterList"
+                               Color="@(showFilters || SelectedCategoryIds.Count > 0 ? Color.Primary : Color.Default)"
+                               OnClick="ToggleFilters"
+                               aria-label="Filter subscriptions" />
+            </MudTooltip>
+            <MudTooltip Text="Import subscriptions">
+                <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
+                               OnClick="ImportRequested"
+                               aria-label="Import subscriptions" />
+            </MudTooltip>
+        </MudStack>
+
+        @if (showSearch)
+        {
+            <MudTextField T="string"
+                          Value="searchValue"
+                          ValueChanged="OnSearchChanged"
+                          Label="Channel name"
+                          Placeholder="Search subscriptions"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          Clearable="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          AutoFocus="true" />
+        }
+
+        @if (showFilters)
+        {
+            @if (Categories.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No categories available.</MudText>
+            }
+            else
+            {
+                <CategoryChipSet Categories="Categories"
+                                 SelectedIds="SelectedCategoryIds"
+                                 SelectedIdsChanged="SelectedCategoryIdsChanged" />
+            }
+        }
+    </MudStack>
+</MudPaper>
+</div>
+
+@code {
+    private string searchValue = string.Empty;
+    private bool showSearch;
+    private bool showFilters;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    [Parameter]
+    public string SearchText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchTextChanged { get; set; }
+
+    [Parameter]
+    public IReadOnlyCollection<int> SelectedCategoryIds { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<IReadOnlyCollection<int>> SelectedCategoryIdsChanged { get; set; }
+
+    [Parameter]
+    public EventCallback ImportRequested { get; set; }
+
+    [Parameter]
+    public EventCallback ClearRequested { get; set; }
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(SearchText) || SelectedCategoryIds.Count > 0;
+
+    protected override void OnParametersSet()
+    {
+        searchValue = SearchText;
+    }
+
+    private void ToggleSearch() => showSearch = !showSearch;
+
+    private void ToggleFilters() => showFilters = !showFilters;
+
+    private async Task OnSearchChanged(string value)
+    {
+        searchValue = value;
+        await SearchTextChanged.InvokeAsync(value);
+    }
+}

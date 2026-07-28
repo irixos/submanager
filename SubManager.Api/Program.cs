@@ -1,3 +1,4 @@
+using Gridify;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -7,6 +8,8 @@ using SubManager.Api.Infrastructure.Identity;
 using SubManager.Api.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+
+GridifyGlobalConfiguration.EnableEntityFrameworkCompatibilityLayer();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

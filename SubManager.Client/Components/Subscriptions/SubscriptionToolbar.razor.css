@@ -1,0 +1,6 @@
+.subscriptions-toolbar {
+    background-color: var(--mud-palette-surface);
+    position: sticky;
+    top: 64px;
+    z-index: 5;
+}

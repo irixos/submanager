@@ -1,5 +1,7 @@
 @page "/subscriptions"
 @attribute [Authorize]
+@implements IAsyncDisposable
+@using System.Text.RegularExpressions
 @using SubManager.ApiClient
 @inject ChannelsClient ChannelsClient
 @inject CategoriesClient CategoriesClient
@@ -8,13 +10,20 @@
 
 <PageTitle>Subscriptions</PageTitle>
 
-<MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
-    <MudTooltip Text="Import subscriptions">
-        <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
-                       OnClick="ImportChannels"
-                       aria-label="Import subscriptions" />
-    </MudTooltip>
-</MudStack>
+<SubscriptionToolbar Categories="categories"
+                     SearchText="@searchText"
+                     SearchTextChanged="SearchChanged"
+                     SelectedCategoryIds="selectedCategoryIds"
+                     SelectedCategoryIdsChanged="CategoriesChanged"
+                     ImportRequested="ImportChannels"
+                     ClearRequested="ClearFilters" />
+
+@if (categoryLoadError is not null)
+{
+    <ErrorAlert Class="mb-3" OnRetry="FetchCategories">
+        Unable to load categories.
+    </ErrorAlert>
+}
 
 @if (!hasLoaded && isLoading)
 {
@@ -25,6 +34,17 @@ else if (loadError is not null && channels.Count == 0)
     <ErrorAlert OnRetry="FetchChannels">
         Unable to load channels.
     </ErrorAlert>
+}
+else if (hasLoaded && channels.Count == 0 && HasFilters)
+{
+    <MudPaper Outlined="true" Class="pa-6">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" />
+            <MudText Typo="Typo.h6">No subscriptions match</MudText>
+            <MudText Align="Align.Center">Try another name or category selection.</MudText>
+            <MudButton Variant="Variant.Outlined" OnClick="ClearFilters">Clear filters</MudButton>
+        </MudStack>
+    </MudPaper>
 }
 else if (hasLoaded && channels.Count == 0)
 {
@@ -54,7 +74,10 @@ else
                 <MudListItem @key="channel.Id" OnClick="@(() => EditChannel(channel))">
                     <AvatarContent>
                         <MudAvatar>
-                            <img src="@channel.ThumbnailUrl" alt="@channel.Name" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover;" />
+                            <img src="@channel.ThumbnailUrl"
+                                 alt="@channel.Name"
+                                 referrerpolicy="no-referrer"
+                                 class="subscription-thumbnail" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
@@ -78,21 +101,31 @@ else
     </InfiniteScroll>
 }
 
-<MudFab StartIcon="@Icons.Material.Filled.Add"
-        Color="Color.Primary"
-        OnClick="AddChannel"
-        class="subscriptions-fab"
-        aria-label="Add channel" />
+<div class="subscriptions-fab">
+    <MudFab StartIcon="@Icons.Material.Filled.Add"
+            Color="Color.Primary"
+            OnClick="AddChannel"
+            aria-label="Add channel" />
+</div>
 
 @code {
+    private const int PageSize = 20;
     private readonly List<ChannelResponse> channels = [];
     private readonly List<CategoryResponse> categories = [];
-    private const int PageSize = 20;
+    private readonly CancellationTokenSource lifetimeCancellationTokenSource = new();
+    private CancellationTokenSource loadCancellationTokenSource = new();
+    private CancellationTokenSource? searchCancellationTokenSource;
+    private IReadOnlyCollection<int> selectedCategoryIds = [];
+    private string searchText = string.Empty;
     private int currentPage = 1;
     private bool isLoading;
     private bool hasLoaded;
     private bool hasMoreChannels = true;
     private Exception? loadError;
+    private Exception? categoryLoadError;
+
+    private bool HasFilters =>
+        !string.IsNullOrWhiteSpace(searchText) || selectedCategoryIds.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,21 +134,36 @@ else
 
     private async Task FetchCategories()
     {
-        categories.Clear();
+        categoryLoadError = null;
+        var loadedCategories = new List<CategoryResponse>();
         const int pageSize = 100;
         var page = 1;
 
-        while (true)
+        try
         {
-            var categoryPage = await CategoriesClient.GetCategoriesAsync(page, pageSize, "Name, Id", null);
-            var newCategories = categoryPage.Data?.ToList() ?? [];
-            categories.AddRange(newCategories);
+            while (true)
+            {
+                var categoryPage = await CategoriesClient.GetCategoriesAsync(
+                    page, pageSize, "Name, Id", null, lifetimeCancellationTokenSource.Token);
+                var newCategories = categoryPage.Data?.ToList() ?? [];
+                loadedCategories.AddRange(newCategories);
 
-            if (newCategories.Count < pageSize ||
-                categoryPage.Count.HasValue && categories.Count >= categoryPage.Count.Value)
-                return;
+                if (newCategories.Count < pageSize ||
+                    categoryPage.Count.HasValue && loadedCategories.Count >= categoryPage.Count.Value)
+                    break;
 
-            page++;
+                page++;
+            }
+
+            categories.Clear();
+            categories.AddRange(loadedCategories);
+        }
+        catch (OperationCanceledException) when (lifetimeCancellationTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            categoryLoadError = exception;
         }
     }
 
@@ -162,11 +210,21 @@ else
 
     private async Task RefreshPage()
     {
+        await Task.WhenAll(RefreshChannels(), FetchCategories());
+    }
+
+    private async Task RefreshChannels()
+    {
+        await loadCancellationTokenSource.CancelAsync();
+        loadCancellationTokenSource.Dispose();
+        loadCancellationTokenSource = new CancellationTokenSource();
+
         channels.Clear();
         currentPage = 1;
         hasMoreChannels = true;
         hasLoaded = false;
-        await Task.WhenAll(FetchChannels(), FetchCategories());
+        isLoading = false;
+        await FetchChannels();
     }
 
     private async Task FetchChannels()
@@ -174,13 +232,17 @@ else
         if (isLoading || !hasMoreChannels)
             return;
 
+        var cancellationToken = loadCancellationTokenSource.Token;
         isLoading = true;
         loadError = null;
 
         try
         {
             var channelPage = await ChannelsClient.GetChannelsAsync(
-                currentPage, PageSize, "Name, Id", null);
+                currentPage, PageSize, "Name, Id", BuildFilter(), cancellationToken);
+
+            if (cancellationToken != loadCancellationTokenSource.Token)
+                return;
 
             var newChannels = channelPage.Data?.ToList() ?? [];
             channels.AddRange(newChannels);
@@ -191,14 +253,87 @@ else
                     ? channels.Count < channelPage.Count.Value
                     : newChannels.Count == PageSize);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
         catch (Exception exception)
         {
             loadError = exception;
         }
         finally
         {
-            isLoading = false;
-            hasLoaded = true;
+            if (cancellationToken == loadCancellationTokenSource.Token)
+            {
+                isLoading = false;
+                hasLoaded = true;
+            }
         }
+    }
+
+    private string? BuildFilter()
+    {
+        var filters = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+            filters.Add($"Name=*{EscapeGridifyValue(searchText.Trim())}/i");
+
+        filters.AddRange(selectedCategoryIds.Select(categoryId => $"Categories.Id={categoryId}"));
+        return filters.Count == 0 ? null : string.Join(',', filters);
+    }
+
+    private static string EscapeGridifyValue(string value)
+    {
+        return Regex.Replace(value, "([(),|\\\\])", "\\$1")
+            .Replace("/i", "\\/i", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task SearchChanged(string value)
+    {
+        searchText = value;
+
+        if (searchCancellationTokenSource is not null)
+        {
+            await searchCancellationTokenSource.CancelAsync();
+            searchCancellationTokenSource.Dispose();
+        }
+
+        searchCancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = searchCancellationTokenSource.Token;
+
+        try
+        {
+            await Task.Delay(300, cancellationToken);
+            await RefreshChannels();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task CategoriesChanged(IReadOnlyCollection<int> categoryIds)
+    {
+        selectedCategoryIds = categoryIds;
+        await RefreshChannels();
+    }
+
+    private async Task ClearFilters()
+    {
+        searchText = string.Empty;
+        selectedCategoryIds = [];
+        await RefreshChannels();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await lifetimeCancellationTokenSource.CancelAsync();
+        await loadCancellationTokenSource.CancelAsync();
+        if (searchCancellationTokenSource is not null)
+        {
+            await searchCancellationTokenSource.CancelAsync();
+            searchCancellationTokenSource.Dispose();
+        }
+
+        lifetimeCancellationTokenSource.Dispose();
+        loadCancellationTokenSource.Dispose();
     }
 }
