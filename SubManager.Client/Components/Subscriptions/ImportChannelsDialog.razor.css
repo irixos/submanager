@@ -1,0 +1,14 @@
+.import-file-label {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 0.75rem;
+}
+
+::deep .import-file-input {
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+}

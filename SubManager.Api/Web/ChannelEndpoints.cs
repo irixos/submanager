@@ -57,7 +57,7 @@ public static class ChannelEndpoints
 
         group.MapPost("/import",
             async Task<Results<Ok<ImportChannelsResponse>, BadRequest>> (
-                ImportChannelsRequest request,
+                [FromForm] ImportChannelsRequest request,
                 IChannelService channelService,
                 CancellationToken ct) =>
             {

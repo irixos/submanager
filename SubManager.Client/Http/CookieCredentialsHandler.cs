@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
@@ -11,6 +12,19 @@ public sealed class CookieCredentialsHandler(NavigationManager navigationManager
     {
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
         request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+
+        if (request.Method == HttpMethod.Post &&
+            request.RequestUri?.AbsolutePath == "/channels/import")
+        {
+            var tokenUri = new Uri(request.RequestUri, "/antiforgery/token");
+            using var tokenRequest = new HttpRequestMessage(HttpMethod.Get, tokenUri);
+            tokenRequest.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+            using var tokenResponse = await base.SendAsync(tokenRequest, cancellationToken);
+            tokenResponse.EnsureSuccessStatusCode();
+            var token = await tokenResponse.Content.ReadFromJsonAsync<string>(cancellationToken)
+                        ?? throw new InvalidOperationException("The antiforgery token response was empty.");
+            request.Headers.Add("X-XSRF-TOKEN", token);
+        }
 
         var returnUrl = navigationManager.ToBaseRelativePath(navigationManager.Uri);
         var response = await base.SendAsync(request, cancellationToken);

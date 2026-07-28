@@ -1,0 +1,123 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject ChannelsClient ChannelsClient
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText>
+                Choose a subscriptions file containing YouTube channel URLs. Supported formats are TXT, CSV, and JSON.
+            </MudText>
+            <MudPaper Outlined="true" Class="pa-4">
+                <label class="import-file-label">
+                    <MudIcon Icon="@Icons.Material.Filled.UploadFile" />
+                    <span>@(file?.Name ?? "Choose file")</span>
+                    <InputFile OnChange="OnFileSelected"
+                               accept=".txt,.csv,.json"
+                               disabled="@isImporting"
+                               class="import-file-input" />
+                </label>
+            </MudPaper>
+            @if (file is not null)
+            {
+                <MudText Typo="Typo.caption">@FormatSize(file.Size)</MudText>
+            }
+            @if ((validationError ?? error) is { } message)
+            {
+                <MudAlert Severity="Severity.Error">@message</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="isImporting">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Import"
+                   Disabled="@(file is null || validationError is not null || isImporting)">
+            @(isImporting ? "Importing…" : "Import")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long MaxFileSize = 5 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedExtensions =
+        new([".txt", ".csv", ".json"], StringComparer.OrdinalIgnoreCase);
+
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private IBrowserFile? file;
+    private bool isImporting;
+    private string? validationError;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void OnFileSelected(InputFileChangeEventArgs args)
+    {
+        file = args.File;
+        validationError = Validate(file);
+        error = null;
+    }
+
+    private static string? Validate(IBrowserFile selectedFile)
+    {
+        if (selectedFile.Size == 0)
+            return "Choose a non-empty subscriptions file.";
+        if (selectedFile.Size > MaxFileSize)
+            return "The subscriptions file must be smaller than 5 MB.";
+        if (!AllowedExtensions.Contains(Path.GetExtension(selectedFile.Name)))
+            return "Choose a TXT, CSV, or JSON file.";
+
+        return null;
+    }
+
+    private async Task Import()
+    {
+        if (file is null || validationError is not null || isImporting)
+            return;
+
+        isImporting = true;
+        error = null;
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxFileSize, cancellationTokenSource.Token);
+            var response = await ChannelsClient.ImportChannelsAsync(
+                new FileParameter(stream, file.Name, file.ContentType),
+                cancellationTokenSource.Token);
+            MudDialog.Close(DialogResult.Ok(response));
+        }
+        catch (ApiException exception) when (exception.StatusCode == 400)
+        {
+            error = "No valid YouTube channel URLs were found in that file.";
+        }
+        catch (ApiException)
+        {
+            error = "Unable to import subscriptions. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        return bytes < 1024
+            ? $"{bytes} bytes"
+            : $"{bytes / 1024d:0.#} KB";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

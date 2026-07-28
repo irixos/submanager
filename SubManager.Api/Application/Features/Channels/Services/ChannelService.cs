@@ -66,45 +66,27 @@ public sealed class ChannelService(
         var parsedRefs = await YoutubeChannelRefParser.ParseFile(request.File, ct);
         if (parsedRefs.Count == 0) return null;
         
-        // dedupe urls in refs
-        var candidatesById = parsedRefs
-            .GroupBy(YoutubeChannelRefParser.GetChannelId, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        
-        // get list of channel ids
-        var candidateIds = candidatesById.Keys.ToList();
-
-        // get list of channels that already exist in db
-        var existingIds = await db.Channels
-            .Where(c => candidateIds.Contains(c.YoutubeChannelId))
-            .Select(c => c.YoutubeChannelId)
-            .ToListAsync(ct);
-        
-        var existingIdSet = existingIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        
-        // filter out channels already present in database
-        var channelsToImport = candidatesById
-            .Where(kvp => !existingIdSet.Contains(kvp.Key))
-            .Select(kvp => kvp.Value)
+        var uniqueRefs = parsedRefs
+            .DistinctBy(channelRef => channelRef.Url, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        
-        // import channels
-        var importedChannels = new List<Channel>();
+        var candidatesById = new Dictionary<string, Channel>(StringComparer.OrdinalIgnoreCase);
+        var duplicateCount = parsedRefs.Count - uniqueRefs.Count;
         var failedCount = 0;
         
-        foreach (var channelRef in channelsToImport)
+        foreach (var channelRef in uniqueRefs)
         {
             try
             {
                 var channelInfo = await youtubeMetadataProvider.GetChannelInfo(channelRef, ct);
 
-                importedChannels.Add(new Channel
+                if (!candidatesById.TryAdd(channelInfo.YoutubeChannelId, new Channel
                 {
                     YoutubeChannelId = channelInfo.YoutubeChannelId,
                     Name = channelInfo.Name,
                     ThumbnailUrl = channelInfo.ThumbnailUrl,
                     IsActive = true,
-                });
+                }))
+                    duplicateCount++;
             }
             catch (OperationCanceledException)
             {
@@ -116,12 +98,23 @@ public sealed class ChannelService(
             }
         }
 
+        var candidateIds = candidatesById.Keys.ToList();
+        var existingIds = await db.Channels
+            .Where(channel => candidateIds.Contains(channel.YoutubeChannelId))
+            .Select(channel => channel.YoutubeChannelId)
+            .ToListAsync(ct);
+        var existingIdSet = existingIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var importedChannels = candidatesById
+            .Where(candidate => !existingIdSet.Contains(candidate.Key))
+            .Select(candidate => candidate.Value)
+            .ToList();
+
         await db.Channels.AddRangeAsync(importedChannels, ct);
         await db.SaveChangesAsync(ct);
         
         var importedCount = importedChannels.Count;
         var candidatesFound = candidatesById.Count;
-        var duplicateCount = existingIdSet.Count;
+        duplicateCount += existingIdSet.Count;
         
         return new ImportChannelsResponse
         {

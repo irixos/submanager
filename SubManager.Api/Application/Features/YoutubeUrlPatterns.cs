@@ -23,8 +23,8 @@ internal static class YouTubeUrlPatterns
         $@"^(?<canonical>(?:https?://)?{SupportedYoutubeDomainPattern}/c/[^/?#\s]+)(?:[/?#].*)?$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    public static readonly Regex YoutubeChannelIdFileRegex = new(
-        $@"(?<canonical>(?:https?://)?{SupportedYoutubeDomainPattern}/channel/UC[0-9A-Za-z_-]{{22}})(?:[/?#][^\s""'<]*)?",
+    public static readonly Regex YoutubeChannelUrlFileRegex = new(
+        $@"(?<![0-9A-Za-z._~/?#@!$&*+=%-])(?:https?://)?{SupportedYoutubeDomainPattern}/(?:channel/UC[0-9A-Za-z_-]{{22}}(?![0-9A-Za-z_-])|@[^,/?#\s""'<]+|c/[^,/?#\s""'<]+|user/[^,/?#\s""'<]+)(?:[/?#][^,\s""'<]*)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     public static readonly Regex YouTubeShortUrlRegex = new(

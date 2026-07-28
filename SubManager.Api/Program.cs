@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using SubManager.Api.Application;
@@ -36,7 +37,7 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddValidation();
 builder.Services.AddHttpClient();
 builder.Services.AddAuthorization();
-builder.Services.AddAntiforgery();
+builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddApplicationServices();
@@ -65,6 +66,12 @@ var identityApi = app.MapGroup(string.Empty)
 
 identityApi.MapIdentityApi<ApplicationUser>()
     .WithTags("Identity");
+
+app.MapGet("/antiforgery/token", (
+        HttpContext context,
+        IAntiforgery antiforgery) =>
+        TypedResults.Json(antiforgery.GetAndStoreTokens(context).RequestToken))
+    .ExcludeFromDescription();
 
 app.MapGroup("/identity")
     .WithTags("Identity")

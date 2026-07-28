@@ -4,8 +4,17 @@
 @inject ChannelsClient ChannelsClient
 @inject CategoriesClient CategoriesClient
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Subscriptions</PageTitle>
+
+<MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
+    <MudTooltip Text="Import subscriptions">
+        <MudIconButton Icon="@Icons.Material.Filled.UploadFile"
+                       OnClick="ImportChannels"
+                       aria-label="Import subscriptions" />
+    </MudTooltip>
+</MudStack>
 
 @if (!hasLoaded && isLoading)
 {
@@ -19,7 +28,19 @@ else if (loadError is not null && channels.Count == 0)
 }
 else if (hasLoaded && channels.Count == 0)
 {
-    <MudAlert Severity="Severity.Info">No channels found</MudAlert>
+    <MudPaper Outlined="true" Class="pa-6">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Subscriptions" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">No subscriptions yet</MudText>
+            <MudText Align="Align.Center">Press the + button to add a channel, or import a subscriptions file.</MudText>
+            <MudButton StartIcon="@Icons.Material.Filled.UploadFile"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       OnClick="ImportChannels">
+                Import subscriptions
+            </MudButton>
+        </MudStack>
+    </MudPaper>
 }
 else
 {
@@ -120,6 +141,22 @@ else
         var dialog = await DialogService.ShowAsync<EditChannelDialog>("Channel", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
         await dialog.Result;
+        await RefreshPage();
+    }
+
+    private async Task ImportChannels()
+    {
+        var dialog = await DialogService.ShowAsync<ImportChannelsDialog>("Import subscriptions",
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        var response = await dialog.GetReturnValueAsync<ImportChannelsResponse>();
+        if (response is null)
+            return;
+
+        Snackbar.Add(
+            $"Imported {response.ImportedCount.GetValueOrDefault()}, " +
+            $"skipped {response.DuplicateCount.GetValueOrDefault()} duplicates, " +
+            $"and failed {response.FailedCount.GetValueOrDefault()}.",
+            response.FailedCount.GetValueOrDefault() > 0 ? Severity.Warning : Severity.Success);
         await RefreshPage();
     }
 

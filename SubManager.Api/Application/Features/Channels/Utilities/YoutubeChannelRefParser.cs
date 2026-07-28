@@ -46,29 +46,12 @@ public static class YoutubeChannelRefParser
         using var reader = new StreamReader(file.OpenReadStream());
         var content = await reader.ReadToEndAsync(ct);
 
-        var matches = YoutubeChannelIdFileRegex.Matches(content);
+        var matches = YoutubeChannelUrlFileRegex.Matches(content);
         if (matches.IsNullOrEmpty()) return [];
 
-        return matches.Select(m => new YoutubeChannelRef(
-            YoutubeChannelRefKind.Id,
-            NormalizeYouTubeUrl(m.Groups["canonical"].Value).ToString()))
+        return matches
+            .Select(match => Parse(match.Value))
             .ToList();
-    }
-    
-    public static string GetChannelId(YoutubeChannelRef channelRef)
-    {
-        if (channelRef.Kind != YoutubeChannelRefKind.Id)
-            throw new ArgumentException("Channel ref must be an ID ref.", nameof(channelRef));
-
-        var uri = NormalizeYouTubeUrl(channelRef.Url);
-
-        var segments = uri.AbsolutePath
-            .Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        if (segments is not ["channel", var channelId])
-            throw new ArgumentException("Channel ref URL must be a canonical channel URL.", nameof(channelRef));
-
-        return channelId;
     }
 
     private static string SanitizeUrl(string channelUrl)
