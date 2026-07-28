@@ -1,0 +1,165 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject CategoriesClient CategoriesClient
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudButton StartIcon="@Icons.Material.Filled.Add"
+                       Color="Color.Primary"
+                       Variant="Variant.Outlined"
+                       Disabled="isDeleting"
+                       OnClick="Add">
+                Add category
+            </MudButton>
+
+            @if (categories.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No categories available.</MudText>
+            }
+            else
+            {
+                @foreach (var category in categories)
+                {
+                    <MudPaper @key="category.Id" Outlined="true" Class="pa-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <span class="category-color-swatch"
+                                  style="@($"background-color: {CategoryColor.Normalize(category.Color)}")"
+                                  aria-hidden="true"></span>
+                            <MudText Class="category-name">@category.Name</MudText>
+                            <MudSpacer />
+                            <MudTooltip Text="Edit category">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Disabled="isDeleting"
+                                               OnClick="@(() => Edit(category))"
+                                               aria-label="@($"Edit {category.Name}")" />
+                            </MudTooltip>
+                            <MudTooltip Text="Delete category">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               Disabled="isDeleting"
+                                               OnClick="@(() => Delete(category))"
+                                               aria-label="@($"Delete {category.Name}")" />
+                            </MudTooltip>
+                        </MudStack>
+                    </MudPaper>
+                }
+            }
+
+            @if (error is not null)
+            {
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Disabled="isDeleting">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly List<CategoryResponse> categories = [];
+    private bool isDeleting;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        categories.AddRange(Categories);
+    }
+
+    private void Close() => MudDialog.Close();
+
+    private async Task Add()
+    {
+        var parameters = new DialogParameters<CategoryDialog>
+        {
+            { dialog => dialog.UsedColors, UsedColors() }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        var category = await dialog.GetReturnValueAsync<CategoryResponse>();
+        if (category is null)
+            return;
+
+        categories.Add(category);
+        SortCategories();
+    }
+
+    private async Task Edit(CategoryResponse category)
+    {
+        var parameters = new DialogParameters<CategoryDialog>
+        {
+            { dialog => dialog.Category, category },
+            { dialog => dialog.UsedColors, UsedColors() }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Edit category", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        var updatedCategory = await dialog.GetReturnValueAsync<CategoryResponse>();
+        if (updatedCategory is null)
+            return;
+
+        var index = categories.FindIndex(candidate => candidate.Id == category.Id);
+        if (index >= 0)
+            categories[index] = updatedCategory;
+        SortCategories();
+    }
+
+    private async Task Delete(CategoryResponse category)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete category?",
+            $"Delete {category.Name}? It will be removed from every channel. Channels and videos will not be deleted.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+        if (confirmed is not true)
+            return;
+
+        isDeleting = true;
+        error = null;
+
+        try
+        {
+            await CategoriesClient.DeleteCategoryAsync(
+                category.Id.GetValueOrDefault(),
+                cancellationTokenSource.Token);
+            categories.Remove(category);
+        }
+        catch (ApiException)
+        {
+            error = "Unable to delete the category. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private string[] UsedColors() =>
+        categories.Select(category => category.Color).OfType<string>().ToArray();
+
+    private void SortCategories()
+    {
+        categories.Sort((left, right) =>
+            string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

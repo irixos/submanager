@@ -26,6 +26,19 @@
                                OnClick="ImportRequested"
                                aria-label="Import subscriptions" />
             </MudTooltip>
+            <MudTooltip Text="Category options">
+                <MudMenu Icon="@Icons.Material.Filled.Label"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight"
+                         aria-label="Category options">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Add" OnClick="AddCategoryRequested">
+                        Add category
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="ManageCategoriesRequested">
+                        Manage categories
+                    </MudMenuItem>
+                </MudMenu>
+            </MudTooltip>
         </MudStack>
 
         @if (showSearch)
@@ -84,6 +97,12 @@
 
     [Parameter]
     public EventCallback ImportRequested { get; set; }
+
+    [Parameter]
+    public EventCallback AddCategoryRequested { get; set; }
+
+    [Parameter]
+    public EventCallback ManageCategoriesRequested { get; set; }
 
     [Parameter]
     public EventCallback ClearRequested { get; set; }

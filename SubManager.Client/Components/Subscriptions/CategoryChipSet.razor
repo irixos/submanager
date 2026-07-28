@@ -61,26 +61,10 @@
 
     private string GetChipStyle(CategoryResponse category)
     {
-        var color = NormalizeColor(category.Color);
+        var color = CategoryColor.Normalize(category.Color);
         if (!selectedIds.Contains(category.Id.GetValueOrDefault()))
             return $"background-color: {color}26; color: {color}99; border-color: {color}66;";
 
-        return $"background-color: {color}; color: {GetForeground(color)}; border-color: {color};";
-    }
-
-    private static string NormalizeColor(string? color)
-    {
-        return color is { Length: 7 } && color[0] == '#'
-            ? color
-            : "#757575";
-    }
-
-    private static string GetForeground(string color)
-    {
-        var red = Convert.ToInt32(color.Substring(1, 2), 16);
-        var green = Convert.ToInt32(color.Substring(3, 2), 16);
-        var blue = Convert.ToInt32(color.Substring(5, 2), 16);
-        var luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-        return luminance >= 150 ? "#1A1A1A" : "#FFFFFF";
+        return $"background-color: {color}; color: {CategoryColor.GetForeground(color)}; border-color: {color};";
     }
 }

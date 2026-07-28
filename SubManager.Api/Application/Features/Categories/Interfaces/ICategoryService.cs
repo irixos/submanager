@@ -8,6 +8,13 @@ public interface ICategoryService
     Task<Paging<CategoryResponse>> GetAllAsync(GridifyQuery query, CancellationToken ct);
     Task<CategoryResponse?> GetAsync(int id, CancellationToken ct);
     Task<CategoryResponse?> CreateAsync(CreateCategoryRequest request, CancellationToken ct);
-    Task<bool> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct);
+    Task<CategoryUpdateResult> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct);
     Task<bool> DeleteAsync(int id, CancellationToken ct);
+}
+
+public enum CategoryUpdateResult
+{
+    Updated,
+    NotFound,
+    Conflict
 }

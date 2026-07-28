@@ -15,12 +15,15 @@
                               MaxLength="50"
                               Immediate="true"
                               AutoFocus="true" />
-                <MudColorPicker @bind-Value="color"
-                                Label="Color"
-                                ShowAlpha="false"
-                                ShowInputs="true"
-                                ShowPreview="true"
-                                ColorPickerMode="ColorPickerMode.RGB" />
+                <div class="category-color-field"
+                     style="@($"--category-color: {color.ToString(MudColorOutputFormats.Hex)}")">
+                    <MudColorPicker @bind-Value="color"
+                                    Label="Color"
+                                    ShowAlpha="false"
+                                    ShowInputs="true"
+                                    ShowPreview="true"
+                                    ColorPickerMode="ColorPickerMode.RGB" />
+                </div>
                 @if (error is not null)
                 {
                     <MudAlert Severity="Severity.Error">@error</MudAlert>
@@ -32,9 +35,9 @@
         <MudButton OnClick="Cancel" Disabled="isSaving">Cancel</MudButton>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
-                   OnClick="Create"
+                   OnClick="Save"
                    Disabled="@(!isValid || isSaving)">
-            @(isSaving ? "Adding…" : "Add")
+            @(isSaving ? "Saving…" : Category is null ? "Add" : "Save")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -61,15 +64,25 @@
     [Parameter]
     public IReadOnlyList<string> UsedColors { get; set; } = [];
 
+    [Parameter]
+    public CategoryResponse? Category { get; set; }
+
     protected override void OnInitialized()
     {
+        if (Category is not null)
+        {
+            name = Category.Name ?? string.Empty;
+            color = new MudColor(CategoryColor.Normalize(Category.Color));
+            return;
+        }
+
         var usedColors = UsedColors.ToHashSet(StringComparer.OrdinalIgnoreCase);
         color = new MudColor(Palette.FirstOrDefault(candidate => !usedColors.Contains(candidate)) ?? "#594AE2");
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private async Task Create()
+    private async Task Save()
     {
         await form!.ValidateAsync();
         if (!isValid || isSaving)
@@ -80,11 +93,35 @@
 
         try
         {
-            var category = await CategoriesClient.CreateCategoryAsync(new CreateCategoryRequest
+            var normalizedName = name.Trim();
+            var normalizedColor = color.ToString(MudColorOutputFormats.Hex);
+            CategoryResponse category;
+
+            if (Category is null)
             {
-                Name = name.Trim(),
-                Color = color.ToString(MudColorOutputFormats.Hex)
-            }, cancellationTokenSource.Token);
+                category = await CategoriesClient.CreateCategoryAsync(new CreateCategoryRequest
+                {
+                    Name = normalizedName,
+                    Color = normalizedColor
+                }, cancellationTokenSource.Token);
+            }
+            else
+            {
+                await CategoriesClient.UpdateCategoryAsync(Category.Id.GetValueOrDefault(),
+                    new UpdateCategoryRequest
+                    {
+                        Name = normalizedName,
+                        Color = normalizedColor,
+                        ClearColor = false
+                    },
+                    cancellationTokenSource.Token);
+                category = new CategoryResponse
+                {
+                    Id = Category.Id,
+                    Name = normalizedName,
+                    Color = normalizedColor
+                };
+            }
 
             MudDialog.Close(DialogResult.Ok(category));
         }
@@ -94,7 +131,7 @@
         }
         catch (ApiException)
         {
-            error = "Unable to add the category. Please try again.";
+            error = $"Unable to {(Category is null ? "add" : "update")} the category. Please try again.";
         }
         catch (HttpRequestException)
         {

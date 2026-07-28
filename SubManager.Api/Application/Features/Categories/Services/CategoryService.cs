@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Gridify;
 using Gridify.EntityFramework;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SubManager.Api.Application.Entities;
 using SubManager.Api.Application.Features.Categories.Interfaces;
@@ -38,7 +39,8 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
             await db.AddAsync(category, ct);
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException exception) when (
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
             return null;
         }
@@ -48,10 +50,13 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
         return response;
     }
 
-    public async Task<bool> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct)
+    public async Task<CategoryUpdateResult> UpdateAsync(
+        int id,
+        UpdateCategoryRequest request,
+        CancellationToken ct)
     {
         var category = await db.Categories.FindAsync([id], ct);
-        if (category is null) return false;
+        if (category is null) return CategoryUpdateResult.NotFound;
         
         if (request.Name is not null)
             category.Name = request.Name;
@@ -61,9 +66,17 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
             category.Color = request.Color;
          
         db.Categories.Update(category);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            return CategoryUpdateResult.Conflict;
+        }
         
-        return true;
+        return CategoryUpdateResult.Updated;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)

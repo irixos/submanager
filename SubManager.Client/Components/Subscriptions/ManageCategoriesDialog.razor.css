@@ -1,0 +1,14 @@
+.category-color-swatch {
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 50%;
+    flex: 0 0 auto;
+    height: 1.25rem;
+    width: 1.25rem;
+}
+
+.category-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

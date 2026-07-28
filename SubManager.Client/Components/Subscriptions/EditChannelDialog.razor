@@ -85,11 +85,11 @@
 
     private async Task AddCategory()
     {
-        var parameters = new DialogParameters<CreateCategoryDialog>
+        var parameters = new DialogParameters<CategoryDialog>
         {
             { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
         };
-        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("Add category", parameters);
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters);
         var category = await dialog.GetReturnValueAsync<CategoryResponse>();
         if (category is null)
             return;

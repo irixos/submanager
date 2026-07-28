@@ -16,11 +16,13 @@
                      SelectedCategoryIds="selectedCategoryIds"
                      SelectedCategoryIdsChanged="CategoriesChanged"
                      ImportRequested="ImportChannels"
+                     AddCategoryRequested="AddCategory"
+                     ManageCategoriesRequested="ManageCategories"
                      ClearRequested="ClearFilters" />
 
 @if (categoryLoadError is not null)
 {
-    <ErrorAlert Class="mb-3" OnRetry="FetchCategories">
+    <ErrorAlert Class="mb-3" OnRetry="RefreshCategoryState">
         Unable to load categories.
     </ErrorAlert>
 }
@@ -180,6 +182,31 @@ else
         await RefreshPage();
     }
 
+    private async Task AddCategory()
+    {
+        var parameters = new DialogParameters<CategoryDialog>
+        {
+            { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        var category = await dialog.GetReturnValueAsync<CategoryResponse>();
+        if (category is not null)
+            await RefreshCategoryState();
+    }
+
+    private async Task ManageCategories()
+    {
+        var parameters = new DialogParameters<ManageCategoriesDialog>
+        {
+            { dialog => dialog.Categories, categories }
+        };
+        var dialog = await DialogService.ShowAsync<ManageCategoriesDialog>("Manage categories", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        await dialog.Result;
+        await RefreshCategoryState();
+    }
+
     private async Task EditChannel(ChannelResponse channel)
     {
         var parameters = new DialogParameters<EditChannelDialog>
@@ -212,6 +239,21 @@ else
     private async Task RefreshPage()
     {
         await Task.WhenAll(RefreshChannels(), FetchCategories());
+    }
+
+    private async Task RefreshCategoryState()
+    {
+        await FetchCategories();
+        if (categoryLoadError is not null)
+            return;
+
+        var validCategoryIds = categories
+            .Select(category => category.Id.GetValueOrDefault())
+            .ToHashSet();
+        selectedCategoryIds = selectedCategoryIds
+            .Where(validCategoryIds.Contains)
+            .ToArray();
+        await RefreshChannels();
     }
 
     private async Task RefreshChannels()

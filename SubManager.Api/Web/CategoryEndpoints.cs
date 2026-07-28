@@ -53,20 +53,24 @@ public static class CategoryEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict);
         
         group.MapPut("/{id:int}", 
-            async Task<Results<NoContent, NotFound>> (
+            async Task<Results<NoContent, NotFound, Conflict>> (
             int id,
             UpdateCategoryRequest request,
             ICategoryService categoryService,
             CancellationToken ct) =>
         {
             var response = await categoryService.UpdateAsync(id, request, ct);
-            return response
-                ? TypedResults.NoContent()
-                : TypedResults.NotFound();
+            return response switch
+            {
+                CategoryUpdateResult.Updated => TypedResults.NoContent(),
+                CategoryUpdateResult.NotFound => TypedResults.NotFound(),
+                _ => TypedResults.Conflict()
+            };
         })
             .WithName("UpdateCategory")
             .WithSummary("Update category")
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         
         group.MapDelete("/{id:int}",
             async Task<Results<NoContent, NotFound>> (

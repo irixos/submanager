@@ -1,0 +1,3 @@
+.category-color-field ::deep input {
+    color: var(--category-color);
+}
