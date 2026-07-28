@@ -1,0 +1,202 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject ChannelsClient ChannelsClient
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <a href="https://www.youtube.com/channel/@Channel.YoutubeChannelId"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="channel-dialog-link">
+                <MudAvatar Size="Size.Large">
+                    <img src="@Channel.ThumbnailUrl"
+                         alt=""
+                         referrerpolicy="no-referrer"
+                         class="channel-dialog-thumbnail" />
+                </MudAvatar>
+                <MudText Typo="Typo.h6">@Channel.Name</MudText>
+            </a>
+
+            <MudSwitch T="bool"
+                       Value="isActive"
+                       ValueChanged="UpdateStatus"
+                       Color="Color.Primary"
+                       Disabled="isSavingStatus">
+                Active
+            </MudSwitch>
+
+            <MudText Typo="Typo.subtitle2">Categories</MudText>
+            <CategoryChipSet Categories="categories"
+                             SelectedIds="selectedCategoryIds"
+                             SelectedIdsChanged="UpdateCategories"
+                             AddRequested="AddCategory"
+                             AllowCreate="true"
+                             Disabled="isSavingCategories" />
+
+            @if (error is not null)
+            {
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error"
+                   Variant="Variant.Text"
+                   OnClick="Delete"
+                   Disabled="isDeleting || isSavingCategories || isSavingStatus">
+            Delete
+        </MudButton>
+        <MudSpacer />
+        <MudButton OnClick="Close" Disabled="isDeleting">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly List<CategoryResponse> categories = [];
+    private IReadOnlyCollection<int> selectedCategoryIds = [];
+    private bool isActive;
+    private bool isSavingCategories;
+    private bool isSavingStatus;
+    private bool isDeleting;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public ChannelResponse Channel { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        categories.AddRange(Categories);
+        selectedCategoryIds = Channel.Categories?
+            .Select(category => category.Id.GetValueOrDefault())
+            .ToArray() ?? [];
+        isActive = Channel.IsActive ?? false;
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private async Task AddCategory()
+    {
+        var parameters = new DialogParameters<CreateCategoryDialog>
+        {
+            { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
+        };
+        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("Add category", parameters);
+        var category = await dialog.GetReturnValueAsync<CategoryResponse>();
+        if (category is null)
+            return;
+
+        categories.Add(category);
+        await UpdateCategories(selectedCategoryIds.Append(category.Id.GetValueOrDefault()).Distinct().ToArray());
+    }
+
+    private async Task UpdateCategories(IReadOnlyCollection<int> categoryIds)
+    {
+        if (isSavingCategories)
+            return;
+
+        var previous = selectedCategoryIds;
+        selectedCategoryIds = categoryIds;
+        isSavingCategories = true;
+        error = null;
+
+        try
+        {
+            await ChannelsClient.UpdateChannelCategoriesAsync(Channel.Id.GetValueOrDefault(),
+                new UpdateChannelCategoriesRequest { CategoryIds = categoryIds.ToArray() },
+                cancellationTokenSource.Token);
+        }
+        catch (ApiException)
+        {
+            selectedCategoryIds = previous;
+            error = "Unable to update categories. Your previous selection was restored.";
+        }
+        catch (HttpRequestException)
+        {
+            selectedCategoryIds = previous;
+            error = "Unable to reach the server. Your previous selection was restored.";
+        }
+        finally
+        {
+            isSavingCategories = false;
+        }
+    }
+
+    private async Task UpdateStatus(bool value)
+    {
+        if (isSavingStatus)
+            return;
+
+        var previous = isActive;
+        isActive = value;
+        isSavingStatus = true;
+        error = null;
+
+        try
+        {
+            await ChannelsClient.UpdateChannelStatusAsync(Channel.Id.GetValueOrDefault(),
+                new UpdateChannelStatusRequest { IsActive = value },
+                cancellationTokenSource.Token);
+        }
+        catch (ApiException)
+        {
+            isActive = previous;
+            error = "Unable to update the channel status. The previous value was restored.";
+        }
+        catch (HttpRequestException)
+        {
+            isActive = previous;
+            error = "Unable to reach the server. The previous value was restored.";
+        }
+        finally
+        {
+            isSavingStatus = false;
+        }
+    }
+
+    private async Task Delete()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete channel?",
+            $"Delete {Channel.Name} and all of its videos? This cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+        if (confirmed is not true)
+            return;
+
+        isDeleting = true;
+        error = null;
+
+        try
+        {
+            await ChannelsClient.DeleteChannelAsync(Channel.Id.GetValueOrDefault(), cancellationTokenSource.Token);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (ApiException)
+        {
+            error = "Unable to delete the channel. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

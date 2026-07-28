@@ -1,0 +1,106 @@
+@using MudBlazor.Utilities
+@using SubManager.ApiClient
+@inject CategoriesClient CategoriesClient
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="name"
+                              Label="Category name"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Enter a category name"
+                              MaxLength="50"
+                              Immediate="true"
+                              AutoFocus="true" />
+                <MudColorPicker @bind-Value="color"
+                                Label="Color"
+                                ShowAlpha="false"
+                                ShowInputs="true"
+                                ShowPreview="true"
+                                ColorPickerMode="ColorPickerMode.RGB" />
+                @if (error is not null)
+                {
+                    <MudAlert Severity="Severity.Error">@error</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="isSaving">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Create"
+                   Disabled="@(!isValid || isSaving)">
+            @(isSaving ? "Adding…" : "Add")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly string[] Palette =
+    [
+        "#D32F2F", "#C2185B", "#7B1FA2", "#512DA8", "#303F9F", "#1976D2",
+        "#0288D1", "#0097A7", "#00796B", "#388E3C", "#689F38", "#AFB42B",
+        "#F9A825", "#F57C00", "#E64A19", "#5D4037", "#455A64"
+    ];
+
+    private MudForm? form;
+    private string name = string.Empty;
+    private MudColor color = new(Palette[0]);
+    private bool isValid;
+    private bool isSaving;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<string> UsedColors { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        var usedColors = UsedColors.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        color = new MudColor(Palette.FirstOrDefault(candidate => !usedColors.Contains(candidate)) ?? "#594AE2");
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Create()
+    {
+        await form!.ValidateAsync();
+        if (!isValid || isSaving)
+            return;
+
+        isSaving = true;
+        error = null;
+
+        try
+        {
+            var category = await CategoriesClient.CreateCategoryAsync(new CreateCategoryRequest
+            {
+                Name = name.Trim(),
+                Color = color.ToString(MudColorOutputFormats.Hex)
+            });
+
+            MudDialog.Close(DialogResult.Ok(category));
+        }
+        catch (ApiException exception) when (exception.StatusCode == 409)
+        {
+            error = "A category with that name already exists.";
+        }
+        catch (ApiException)
+        {
+            error = "Unable to add the category. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

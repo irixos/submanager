@@ -1,0 +1,19 @@
+.channel-dialog-link {
+    align-items: center;
+    align-self: flex-start;
+    color: inherit;
+    display: inline-flex;
+    gap: 1rem;
+    min-height: 48px;
+    text-decoration: none;
+}
+
+.channel-dialog-link:hover {
+    text-decoration: underline;
+}
+
+.channel-dialog-thumbnail {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}

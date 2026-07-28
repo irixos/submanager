@@ -1,0 +1,128 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject ChannelsClient ChannelsClient
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="channelUrl"
+                              Label="YouTube channel URL"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Enter a channel URL"
+                              Immediate="true"
+                              AutoFocus="true" />
+                <MudText Typo="Typo.subtitle2">Categories (optional)</MudText>
+                <CategoryChipSet Categories="categories"
+                                 SelectedIds="selectedCategoryIds"
+                                 SelectedIdsChanged="OnCategoriesChanged"
+                                 AddRequested="AddCategory"
+                                 AllowCreate="true"
+                                 Disabled="isSaving" />
+                @if (error is not null)
+                {
+                    <MudAlert Severity="Severity.Error">@error</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="isSaving">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Create"
+                   Disabled="@(!isValid || isSaving)">
+            @(isSaving ? "Adding…" : "Add channel")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly List<CategoryResponse> categories = [];
+    private IReadOnlyCollection<int> selectedCategoryIds = [];
+    private MudForm? form;
+    private string channelUrl = string.Empty;
+    private bool isValid;
+    private bool isSaving;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        categories.AddRange(Categories);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private Task OnCategoriesChanged(IReadOnlyCollection<int> categoryIds)
+    {
+        selectedCategoryIds = categoryIds;
+        return Task.CompletedTask;
+    }
+
+    private async Task AddCategory()
+    {
+        var parameters = new DialogParameters<CreateCategoryDialog>
+        {
+            { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
+        };
+        var dialog = await DialogService.ShowAsync<CreateCategoryDialog>("Add category", parameters);
+        var category = await dialog.GetReturnValueAsync<CategoryResponse>();
+        if (category is null)
+            return;
+
+        categories.Add(category);
+        selectedCategoryIds = selectedCategoryIds.Append(category.Id.GetValueOrDefault()).Distinct().ToArray();
+    }
+
+    private async Task Create()
+    {
+        await form!.ValidateAsync();
+        if (!isValid || isSaving)
+            return;
+
+        isSaving = true;
+        error = null;
+
+        try
+        {
+            var channel = await ChannelsClient.CreateChannelAsync(new CreateChannelRequest
+            {
+                ChannelUrl = channelUrl.Trim(),
+                CategoryIds = selectedCategoryIds.ToArray()
+            }, cancellationTokenSource.Token);
+
+            MudDialog.Close(DialogResult.Ok(channel));
+        }
+        catch (ApiException exception) when (exception.StatusCode == 409)
+        {
+            error = "That channel has already been added.";
+        }
+        catch (ApiException)
+        {
+            error = "Unable to add the channel. Check the URL and try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

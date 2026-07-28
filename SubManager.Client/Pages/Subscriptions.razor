@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @using SubManager.ApiClient
 @inject ChannelsClient ChannelsClient
+@inject CategoriesClient CategoriesClient
+@inject IDialogService DialogService
 
 <PageTitle>Subscriptions</PageTitle>
 
@@ -28,7 +30,7 @@ else
         <MudList T="string">
             @foreach (var channel in channels)
             {
-                <MudListItem @key="channel.Id">
+                <MudListItem @key="channel.Id" OnClick="@(() => EditChannel(channel))">
                     <AvatarContent>
                         <MudAvatar>
                             <img src="@channel.ThumbnailUrl" alt="@channel.Name" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -55,8 +57,15 @@ else
     </InfiniteScroll>
 }
 
+<MudFab StartIcon="@Icons.Material.Filled.Add"
+        Color="Color.Primary"
+        OnClick="AddChannel"
+        class="subscriptions-fab"
+        aria-label="Add channel" />
+
 @code {
     private readonly List<ChannelResponse> channels = [];
+    private readonly List<CategoryResponse> categories = [];
     private const int PageSize = 20;
     private int currentPage = 1;
     private bool isLoading;
@@ -66,7 +75,61 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await FetchChannels();
+        await Task.WhenAll(FetchChannels(), FetchCategories());
+    }
+
+    private async Task FetchCategories()
+    {
+        categories.Clear();
+        const int pageSize = 100;
+        var page = 1;
+
+        while (true)
+        {
+            var categoryPage = await CategoriesClient.GetCategoriesAsync(page, pageSize, "Name, Id", null);
+            var newCategories = categoryPage.Data?.ToList() ?? [];
+            categories.AddRange(newCategories);
+
+            if (newCategories.Count < pageSize ||
+                categoryPage.Count.HasValue && categories.Count >= categoryPage.Count.Value)
+                return;
+
+            page++;
+        }
+    }
+
+    private async Task AddChannel()
+    {
+        var parameters = new DialogParameters<AddChannelDialog>
+        {
+            { dialog => dialog.Categories, categories }
+        };
+        var dialog = await DialogService.ShowAsync<AddChannelDialog>("Add channel", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        await dialog.Result;
+        await RefreshPage();
+    }
+
+    private async Task EditChannel(ChannelResponse channel)
+    {
+        var parameters = new DialogParameters<EditChannelDialog>
+        {
+            { dialog => dialog.Channel, channel },
+            { dialog => dialog.Categories, categories }
+        };
+        var dialog = await DialogService.ShowAsync<EditChannelDialog>("Channel", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+        await dialog.Result;
+        await RefreshPage();
+    }
+
+    private async Task RefreshPage()
+    {
+        channels.Clear();
+        currentPage = 1;
+        hasMoreChannels = true;
+        hasLoaded = false;
+        await Task.WhenAll(FetchChannels(), FetchCategories());
     }
 
     private async Task FetchChannels()

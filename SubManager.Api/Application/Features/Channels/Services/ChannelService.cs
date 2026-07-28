@@ -135,7 +135,9 @@ public sealed class ChannelService(
 
     public async Task<bool> UpdateCategoriesAsync(int id, UpdateChannelCategoriesRequest request, CancellationToken ct)
     {
-        var channel = await db.Channels.FindAsync([id], ct);
+        var channel = await db.Channels
+            .Include(channel => channel.Categories)
+            .SingleOrDefaultAsync(channel => channel.Id == id, ct);
         if (channel is null) return false;
 
         if (request.CategoryIds is not null)
@@ -155,7 +157,6 @@ public sealed class ChannelService(
         else 
             channel.Categories.Clear();
 
-        db.Channels.Update(channel);
         await db.SaveChangesAsync(ct);
         
         return true;
@@ -168,7 +169,6 @@ public sealed class ChannelService(
          
         channel.IsActive = request.IsActive;
         
-        db.Channels.Update(channel);
         await db.SaveChangesAsync(ct);
         
         return true;
