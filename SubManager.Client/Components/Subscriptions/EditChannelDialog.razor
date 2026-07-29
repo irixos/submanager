@@ -2,6 +2,7 @@
 @using SubManager.ApiClient
 @inject ChannelsClient ChannelsClient
 @inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 
 <MudDialog>
     <DialogContent>
@@ -48,6 +49,12 @@
                    Disabled="isBusy">
             Delete
         </MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.VideoLibrary"
+                   Variant="Variant.Text"
+                   OnClick="ViewVideos"
+                   Disabled="isBusy">
+            View videos
+        </MudButton>
         <MudSpacer />
         <MudButton OnClick="Close" Disabled="isBusy">Close</MudButton>
     </DialogActions>
@@ -80,6 +87,12 @@
     }
 
     private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void ViewVideos()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+        NavigationManager.NavigateTo($"/feed?channel={Channel.Id.GetValueOrDefault()}");
+    }
 
     private async Task AddCategory()
     {

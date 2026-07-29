@@ -1,0 +1,102 @@
+@using SubManager.ApiClient
+
+<PageToolbar>
+    <Actions>
+        @if (HasActiveFilters)
+        {
+            <MudButton Size="Size.Small" OnClick="ClearRequested">Clear filters</MudButton>
+        }
+        <MudTooltip Text="Filter videos">
+            <MudIconButton Icon="@Icons.Material.Filled.FilterList"
+                           Color="@(showFilters || HasActiveFilters ? Color.Primary : Color.Default)"
+                           OnClick="ToggleFilters"
+                           aria-label="Filter videos" />
+        </MudTooltip>
+        <MudTooltip Text="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")">
+            <MudIconButton Icon="@(ViewMode == FeedViewMode.Grid ? Icons.Material.Filled.ViewList : Icons.Material.Filled.GridView)"
+                           OnClick="ToggleView"
+                           aria-label="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")" />
+        </MudTooltip>
+    </Actions>
+    <ExpandedContent>
+        @if (showFilters)
+        {
+            <MudText Typo="Typo.subtitle2">Categories</MudText>
+            @if (Categories.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No categories available.</MudText>
+            }
+            else
+            {
+                <CategoryChipSet Categories="Categories"
+                                 SelectedIds="SelectedCategoryIds"
+                                 SelectedIdsChanged="SelectedCategoryIdsChanged" />
+            }
+
+            <MudText Typo="Typo.subtitle2">Channels</MudText>
+            @if (Channels.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No channels available.</MudText>
+            }
+            else
+            {
+                <MudChipSet T="int"
+                            SelectionMode="SelectionMode.MultiSelection"
+                            SelectedValues="SelectedChannelIds"
+                            SelectedValuesChanged="SelectedChannelIdsChanged">
+                    @foreach (var channel in Channels)
+                    {
+                        <MudChip T="int"
+                                 @key="channel.Id"
+                                 Value="channel.Id.GetValueOrDefault()"
+                                 Label="true">
+                            @channel.Name
+                        </MudChip>
+                    }
+                </MudChipSet>
+            }
+        }
+    </ExpandedContent>
+</PageToolbar>
+
+@code {
+    private bool showFilters;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChannelResponse> Channels { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyCollection<int> SelectedCategoryIds { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<IReadOnlyCollection<int>> SelectedCategoryIdsChanged { get; set; }
+
+    [Parameter]
+    public IReadOnlyCollection<int> SelectedChannelIds { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<IReadOnlyCollection<int>> SelectedChannelIdsChanged { get; set; }
+
+    [Parameter]
+    public FeedViewMode ViewMode { get; set; }
+
+    [Parameter]
+    public EventCallback<FeedViewMode> ViewModeChanged { get; set; }
+
+    [Parameter]
+    public EventCallback ClearRequested { get; set; }
+
+    private bool HasActiveFilters =>
+        SelectedCategoryIds.Count > 0 || SelectedChannelIds.Count > 0;
+
+    private void ToggleFilters() => showFilters = !showFilters;
+
+    private Task ToggleView()
+    {
+        var value = ViewMode == FeedViewMode.Grid ? FeedViewMode.List : FeedViewMode.Grid;
+        return ViewModeChanged.InvokeAsync(value);
+    }
+}

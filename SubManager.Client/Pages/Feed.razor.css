@@ -1,0 +1,13 @@
+.video-feed {
+    display: grid;
+}
+
+.video-feed-grid {
+    gap: 1.5rem 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+}
+
+.video-feed-list {
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
+}

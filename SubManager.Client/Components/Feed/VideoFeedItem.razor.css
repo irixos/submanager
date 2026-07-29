@@ -1,0 +1,130 @@
+.video-feed-item {
+    color: var(--mud-palette-text-primary);
+    min-width: 0;
+    position: relative;
+}
+
+.video-feed-grid-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.video-feed-list-item {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: clamp(10rem, 32vw, 20rem) minmax(0, 1fr);
+}
+
+.video-link-overlay {
+    inset: 0;
+    position: absolute;
+    z-index: 1;
+}
+
+.video-link-overlay:focus-visible {
+    border-radius: 0.75rem;
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+
+.video-link-overlay:hover ~ .video-details .video-title,
+.video-link-overlay:focus-visible ~ .video-details .video-title {
+    text-decoration: underline;
+}
+
+.video-thumbnail-container {
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    width: 100%;
+}
+
+.video-thumbnail {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.video-details {
+    display: flex;
+    gap: 0.75rem;
+    min-width: 0;
+    padding-top: 0.75rem;
+    pointer-events: none;
+    position: relative;
+    z-index: 2;
+}
+
+.video-feed-list-item .video-details {
+    padding-top: 0.25rem;
+}
+
+.channel-avatar-link,
+.channel-name-link {
+    pointer-events: auto;
+}
+
+.channel-avatar-link {
+    flex: 0 0 auto;
+    height: fit-content;
+}
+
+.channel-avatar-link:hover ~ .video-text .channel-name-link,
+.channel-avatar-link:focus-visible ~ .video-text .channel-name-link,
+.channel-name-link:hover,
+.channel-name-link:focus-visible {
+    text-decoration: underline;
+}
+
+.channel-thumbnail {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.video-text {
+    min-width: 0;
+}
+
+.video-title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.channel-name-link {
+    color: var(--mud-palette-text-secondary);
+    display: block;
+    font-size: var(--mud-typography-body2-size);
+    margin-top: 0.15rem;
+    position: relative;
+    text-decoration: none;
+    width: fit-content;
+    z-index: 3;
+}
+
+.video-metadata {
+    color: var(--mud-palette-text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: var(--mud-typography-body2-size);
+}
+
+.video-metadata span + span::before {
+    content: "•";
+    margin: 0 0.35rem;
+}
+
+@media (max-width: 600px) {
+    .video-feed-list-item {
+        gap: 0.75rem;
+        grid-template-columns: minmax(8rem, 42%) minmax(0, 1fr);
+    }
+
+    .video-feed-list-item .video-details {
+        padding-top: 0;
+    }
+}

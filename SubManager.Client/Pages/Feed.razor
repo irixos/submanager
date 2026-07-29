@@ -1,10 +1,31 @@
 @page "/feed"
 @attribute [Authorize]
+@implements IAsyncDisposable
 @using SubManager.ApiClient
-@using Humanizer
 @inject VideosClient VideosClient
+@inject ChannelsClient ChannelsClient
+@inject CategoriesClient CategoriesClient
+@inject IJSRuntime JS
+@inject ILogger<Feed> Logger
 
 <PageTitle>Feed</PageTitle>
+
+<FeedToolbar Categories="categories"
+             Channels="channels"
+             SelectedCategoryIds="selectedCategoryIds"
+             SelectedCategoryIdsChanged="SetSelectedCategories"
+             SelectedChannelIds="selectedChannelIds"
+             SelectedChannelIdsChanged="SetSelectedChannels"
+             ViewMode="viewMode"
+             ViewModeChanged="SetViewMode"
+             ClearRequested="ClearFilters" />
+
+@if (filterOptionsError is not null)
+{
+    <ErrorAlert Class="mb-3" OnRetry="LoadFilterOptions">
+        Unable to load feed filters.
+    </ErrorAlert>
+}
 
 @if (!hasLoaded && isLoading)
 {
@@ -16,6 +37,17 @@ else if (loadError is not null && videos.Count == 0)
         Unable to load videos.
     </ErrorAlert>
 }
+else if (hasLoaded && videos.Count == 0 && HasFilters)
+{
+    <MudPaper Outlined="true" Class="pa-6">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" />
+            <MudText Typo="Typo.h6">No videos match</MudText>
+            <MudText Align="Align.Center">Try another category or channel selection.</MudText>
+            <MudButton Variant="Variant.Outlined" OnClick="ClearFilters">Clear filters</MudButton>
+        </MudStack>
+    </MudPaper>
+}
 else if (hasLoaded && videos.Count == 0)
 {
     <MudAlert Severity="Severity.Info">No videos found</MudAlert>
@@ -26,31 +58,12 @@ else
                     HasMore="hasMoreVideos && loadError is null"
                     IsLoading="isLoading"
                     LoadMore="FetchVideos">
-        <MudGrid>
+        <div class="video-feed @(viewMode == FeedViewMode.Grid ? "video-feed-grid" : "video-feed-list")">
             @foreach (var video in videos)
             {
-                <MudItem @key="video.Id" xs="12" sm="6" md="4">
-                    <MudCard>
-                        <MudCardMedia Image="@video.ThumbnailUrl"/>
-                        <MudCardContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
-                                <MudAvatar>
-                                    <img src="@video.Channel?.ThumbnailUrl" alt="@video.Channel?.Name" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover;"/>
-                                </MudAvatar>
-                                <MudStack>
-                                    <MudText><strong>@video.Title</strong></MudText>
-                                    <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.FlexStart">
-                                        <MudText>@video.Channel?.Name</MudText>
-                                        <MudText>@video.ViewCount?.ToMetric(decimals: 0)</MudText>
-                                        <MudText>@video.PublishedDate?.Humanize()</MudText>
-                                    </MudStack>
-                                </MudStack>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
+                <VideoFeedItem @key="video.Id" Video="video" ViewMode="viewMode" />
             }
-        </MudGrid>
+        </div>
 
         @if (isLoading)
         {
@@ -67,17 +80,116 @@ else
 }
 
 @code {
-    private readonly List<VideoResponse> videos = [];
     private const int PageSize = 20;
+    private const int FilterPageSize = 100;
+    private readonly List<VideoResponse> videos = [];
+    private readonly List<CategoryResponse> categories = [];
+    private readonly List<ChannelResponse> channels = [];
+    private readonly CancellationTokenSource lifetimeCancellationTokenSource = new();
+    private CancellationTokenSource loadCancellationTokenSource = new();
+    private IReadOnlyCollection<int> selectedCategoryIds = [];
+    private IReadOnlyCollection<int> selectedChannelIds = [];
+    private FeedViewMode viewMode = FeedViewMode.Grid;
+    private FeedInterop? interop;
     private int currentPage = 1;
     private bool isLoading;
     private bool hasLoaded;
     private bool hasMoreVideos = true;
     private Exception? loadError;
+    private Exception? filterOptionsError;
+
+    [Parameter, SupplyParameterFromQuery(Name = "channel")]
+    public int? InitialChannelId { get; set; }
+
+    private bool HasFilters =>
+        selectedCategoryIds.Count > 0 || selectedChannelIds.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadFilterOptions();
+        if (InitialChannelId.HasValue &&
+            channels.Any(channel => channel.Id.GetValueOrDefault() == InitialChannelId.Value))
+        {
+            selectedChannelIds = [InitialChannelId.Value];
+        }
+
         await FetchVideos();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        interop = new FeedInterop(JS);
+        var storedViewMode = await interop.GetViewModeAsync();
+        if (Enum.TryParse<FeedViewMode>(storedViewMode, true, out var value))
+        {
+            viewMode = value;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFilterOptions()
+    {
+        filterOptionsError = null;
+
+        try
+        {
+            var loadedCategories = await LoadAllCategories();
+            var loadedChannels = await LoadAllChannels();
+
+            categories.Clear();
+            categories.AddRange(loadedCategories);
+            channels.Clear();
+            channels.AddRange(loadedChannels);
+        }
+        catch (Exception exception) when (
+            exception is not OperationCanceledException || !lifetimeCancellationTokenSource.IsCancellationRequested)
+        {
+            Logger.LogError(exception, "Unable to load feed filter options");
+            filterOptionsError = exception;
+        }
+    }
+
+    private async Task<List<CategoryResponse>> LoadAllCategories()
+    {
+        var result = new List<CategoryResponse>();
+        var page = 1;
+
+        while (true)
+        {
+            var response = await CategoriesClient.GetCategoriesAsync(
+                page, FilterPageSize, "Name, Id", null, lifetimeCancellationTokenSource.Token);
+            var items = response.Data?.ToList() ?? [];
+            result.AddRange(items);
+
+            if (items.Count < FilterPageSize ||
+                response.Count.HasValue && result.Count >= response.Count.Value)
+                return result;
+
+            page++;
+        }
+    }
+
+    private async Task<List<ChannelResponse>> LoadAllChannels()
+    {
+        var result = new List<ChannelResponse>();
+        var page = 1;
+
+        while (true)
+        {
+            var response = await ChannelsClient.GetChannelsAsync(
+                page, FilterPageSize, "Name, Id", null, lifetimeCancellationTokenSource.Token);
+            var items = response.Data?.ToList() ?? [];
+            result.AddRange(items);
+
+            if (items.Count < FilterPageSize ||
+                response.Count.HasValue && result.Count >= response.Count.Value)
+                return result;
+
+            page++;
+        }
     }
 
     private async Task FetchVideos()
@@ -85,13 +197,17 @@ else
         if (isLoading || !hasMoreVideos)
             return;
 
+        var cancellationToken = loadCancellationTokenSource.Token;
         isLoading = true;
         loadError = null;
 
         try
         {
             var videoPage = await VideosClient.GetVideosAsync(
-                currentPage, PageSize, "PublishedDate desc, Id desc", "IsShort = false");
+                currentPage, PageSize, "PublishedDate desc, Id desc", BuildFilter(), cancellationToken);
+
+            if (cancellationToken != loadCancellationTokenSource.Token)
+                return;
 
             var newVideos = videoPage.Data?.ToList() ?? [];
             videos.AddRange(newVideos);
@@ -102,14 +218,84 @@ else
                     ? videos.Count < videoPage.Count.Value
                     : newVideos.Count == PageSize);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (
+            exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            Logger.LogError(exception, "Unable to load feed page {Page}", currentPage);
             loadError = exception;
         }
         finally
         {
-            isLoading = false;
-            hasLoaded = true;
+            if (cancellationToken == loadCancellationTokenSource.Token)
+            {
+                isLoading = false;
+                hasLoaded = true;
+            }
         }
+    }
+
+    private string BuildFilter()
+    {
+        var filters = new List<string> { "IsShort=false" };
+        filters.AddRange(selectedCategoryIds.Select(id => $"Categories.Id={id}"));
+
+        if (selectedChannelIds.Count == 1)
+            filters.Add($"Channel.Id={selectedChannelIds.First()}");
+        else if (selectedChannelIds.Count > 1)
+            filters.Add($"({string.Join('|', selectedChannelIds.Select(id => $"Channel.Id={id}"))})");
+
+        return string.Join(',', filters);
+    }
+
+    private async Task SetSelectedCategories(IReadOnlyCollection<int> values)
+    {
+        selectedCategoryIds = values;
+        await RefreshVideos();
+    }
+
+    private async Task SetSelectedChannels(IReadOnlyCollection<int> values)
+    {
+        selectedChannelIds = values;
+        await RefreshVideos();
+    }
+
+    private async Task SetViewMode(FeedViewMode value)
+    {
+        viewMode = value;
+        if (interop is not null)
+            await interop.SetViewModeAsync(value.ToString().ToLowerInvariant());
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedCategoryIds = [];
+        selectedChannelIds = [];
+        await RefreshVideos();
+    }
+
+    private async Task RefreshVideos()
+    {
+        await loadCancellationTokenSource.CancelAsync();
+        loadCancellationTokenSource.Dispose();
+        loadCancellationTokenSource = new CancellationTokenSource();
+
+        videos.Clear();
+        currentPage = 1;
+        hasMoreVideos = true;
+        hasLoaded = false;
+        isLoading = false;
+        await FetchVideos();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await lifetimeCancellationTokenSource.CancelAsync();
+        await loadCancellationTokenSource.CancelAsync();
+
+        if (interop is not null)
+            await interop.DisposeAsync();
+
+        lifetimeCancellationTokenSource.Dispose();
+        loadCancellationTokenSource.Dispose();
     }
 }

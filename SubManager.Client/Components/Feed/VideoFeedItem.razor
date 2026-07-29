@@ -1,0 +1,69 @@
+@using Humanizer
+@using SubManager.ApiClient
+
+<article class="video-feed-item @(ViewMode == FeedViewMode.Grid ? "video-feed-grid-item" : "video-feed-list-item")">
+    <a class="video-link-overlay"
+       href="@VideoUrl"
+       target="_blank"
+       rel="noopener noreferrer"
+       aria-label="@($"Watch {Video.Title}")"></a>
+
+    <div class="video-thumbnail-container">
+        <img src="@Video.ThumbnailUrl"
+             alt=""
+             referrerpolicy="no-referrer"
+             class="video-thumbnail" />
+    </div>
+
+    <div class="video-details">
+        @if (ViewMode == FeedViewMode.Grid)
+        {
+            <a class="channel-avatar-link"
+               href="@ChannelUrl"
+               target="_blank"
+               rel="noopener noreferrer"
+               aria-label="@($"Open {Video.Channel?.Name}")">
+                <MudAvatar Size="Size.Medium">
+                    <img src="@Video.Channel?.ThumbnailUrl"
+                         alt=""
+                         referrerpolicy="no-referrer"
+                         class="channel-thumbnail" />
+                </MudAvatar>
+            </a>
+        }
+
+        <div class="video-text">
+            <MudText Typo="Typo.subtitle2" Class="video-title">@Video.Title</MudText>
+            <a class="channel-name-link"
+               href="@ChannelUrl"
+               target="_blank"
+               rel="noopener noreferrer">
+                @Video.Channel?.Name
+            </a>
+            <div class="video-metadata">
+                @if (Video.ViewCount.HasValue)
+                {
+                    <span>@Video.ViewCount.Value.ToMetric(decimals: 0) views</span>
+                }
+                @if (Video.PublishedDate.HasValue)
+                {
+                    <span>@Video.PublishedDate.Value.Humanize()</span>
+                }
+            </div>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public VideoResponse Video { get; set; } = null!;
+
+    [Parameter]
+    public FeedViewMode ViewMode { get; set; }
+
+    private string VideoUrl =>
+        $"https://www.youtube.com/watch?v={Uri.EscapeDataString(Video.YoutubeVideoId ?? string.Empty)}";
+
+    private string ChannelUrl =>
+        $"https://www.youtube.com/channel/{Uri.EscapeDataString(Video.Channel?.YoutubeChannelId ?? string.Empty)}";
+}
