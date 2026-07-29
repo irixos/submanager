@@ -1,10 +1,7 @@
 @using SubManager.ApiClient
 
-<div class="subscriptions-toolbar">
-<MudPaper Square="true" Elevation="1" Class="pa-2 mb-3">
-    <MudStack Spacing="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center">
-            <MudSpacer />
+<PageToolbar>
+    <Actions>
             @if (HasActiveFilters)
             {
                 <MudButton Size="Size.Small" OnClick="ClearRequested">Clear filters</MudButton>
@@ -45,8 +42,8 @@
                     </MudMenuItem>
                 </MudMenu>
             </MudTooltip>
-        </MudStack>
-
+    </Actions>
+    <ExpandedContent>
         @if (showSearch)
         {
             <MudTextField T="string"
@@ -77,9 +74,8 @@
                                  SelectedIdsChanged="SelectedCategoryIdsChanged" />
             }
         }
-    </MudStack>
-</MudPaper>
-</div>
+    </ExpandedContent>
+</PageToolbar>
 
 @code {
     private bool showSearch;

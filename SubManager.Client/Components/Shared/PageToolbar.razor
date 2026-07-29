@@ -1,0 +1,19 @@
+<div class="page-toolbar">
+    <MudPaper Square="true" Elevation="1" Class="pa-2 mb-3">
+        <MudStack Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudSpacer />
+                @Actions
+            </MudStack>
+            @ExpandedContent
+        </MudStack>
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment Actions { get; set; } = null!;
+
+    [Parameter]
+    public RenderFragment? ExpandedContent { get; set; }
+}
