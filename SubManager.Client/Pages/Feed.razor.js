@@ -13,7 +13,7 @@ export function setViewMode(value) {
 }
 
 export function getShowCategories() {
-    return localStorage.getItem(SHOW_CATEGORIES_KEY) === 'true';
+    return localStorage.getItem(SHOW_CATEGORIES_KEY) !== 'false';
 }
 
 export function setShowCategories(value) {

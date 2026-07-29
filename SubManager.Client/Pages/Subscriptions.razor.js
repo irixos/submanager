@@ -3,7 +3,7 @@ const VIEW_MODE_KEY = 'submanager.subscriptions.viewMode';
 
 export function getPreferences() {
     return {
-        showCategories: localStorage.getItem(SHOW_CATEGORIES_KEY) === 'true',
+        showCategories: localStorage.getItem(SHOW_CATEGORIES_KEY) !== 'false',
         gridView: localStorage.getItem(VIEW_MODE_KEY) === 'grid'
     };
 }
