@@ -65,7 +65,6 @@ public sealed class CategoryService(ApplicationDbContext db) : ICategoryService
         else if (request.Color is not null)
             category.Color = request.Color;
          
-        db.Categories.Update(category);
         try
         {
             await db.SaveChangesAsync(ct);

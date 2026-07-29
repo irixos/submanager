@@ -2,8 +2,8 @@
 
 <MudChipSet T="int"
             SelectionMode="SelectionMode.MultiSelection"
-            SelectedValues="selectedIds"
-            SelectedValuesChanged="OnSelectedValuesChanged"
+            SelectedValues="SelectedIds"
+            SelectedValuesChanged="SelectedIdsChanged"
             Disabled="Disabled"
             Class="category-chip-set">
     @foreach (var category in Categories)
@@ -28,8 +28,6 @@
 </MudChipSet>
 
 @code {
-    private IReadOnlyCollection<int> selectedIds = [];
-
     [Parameter, EditorRequired]
     public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
 
@@ -48,21 +46,10 @@
     [Parameter]
     public bool Disabled { get; set; }
 
-    protected override void OnParametersSet()
-    {
-        selectedIds = SelectedIds.ToArray();
-    }
-
-    private async Task OnSelectedValuesChanged(IReadOnlyCollection<int> values)
-    {
-        selectedIds = values;
-        await SelectedIdsChanged.InvokeAsync(values);
-    }
-
     private string GetChipStyle(CategoryResponse category)
     {
         var color = CategoryColor.Normalize(category.Color);
-        if (!selectedIds.Contains(category.Id.GetValueOrDefault()))
+        if (!SelectedIds.Contains(category.Id.GetValueOrDefault()))
             return $"background-color: {color}26; color: {color}99; border-color: {color}66;";
 
         return $"background-color: {color}; color: {CategoryColor.GetForeground(color)}; border-color: {color};";

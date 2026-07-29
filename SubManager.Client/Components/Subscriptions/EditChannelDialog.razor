@@ -23,7 +23,7 @@
                        Value="isActive"
                        ValueChanged="UpdateStatus"
                        Color="Color.Primary"
-                       Disabled="isSavingStatus">
+                       Disabled="isBusy">
                 Active
             </MudSwitch>
 
@@ -33,7 +33,7 @@
                              SelectedIdsChanged="UpdateCategories"
                              AddRequested="AddCategory"
                              AllowCreate="true"
-                             Disabled="isSavingCategories" />
+                             Disabled="isBusy" />
 
             @if (error is not null)
             {
@@ -45,11 +45,11 @@
         <MudButton Color="Color.Error"
                    Variant="Variant.Text"
                    OnClick="Delete"
-                   Disabled="isDeleting || isSavingCategories || isSavingStatus">
+                   Disabled="isBusy">
             Delete
         </MudButton>
         <MudSpacer />
-        <MudButton OnClick="Close" Disabled="isDeleting || isSavingCategories || isSavingStatus">Close</MudButton>
+        <MudButton OnClick="Close" Disabled="isBusy">Close</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -58,9 +58,7 @@
     private readonly List<CategoryResponse> categories = [];
     private IReadOnlyCollection<int> selectedCategoryIds = [];
     private bool isActive;
-    private bool isSavingCategories;
-    private bool isSavingStatus;
-    private bool isDeleting;
+    private bool isBusy;
     private string? error;
 
     [CascadingParameter]
@@ -96,17 +94,17 @@
             return;
 
         categories.Add(category);
-        await UpdateCategories(selectedCategoryIds.Append(category.Id.GetValueOrDefault()).Distinct().ToArray());
+        await UpdateCategories(selectedCategoryIds.Append(category.Id.GetValueOrDefault()).ToArray());
     }
 
     private async Task UpdateCategories(IReadOnlyCollection<int> categoryIds)
     {
-        if (isSavingCategories)
+        if (isBusy)
             return;
 
         var previous = selectedCategoryIds;
         selectedCategoryIds = categoryIds;
-        isSavingCategories = true;
+        isBusy = true;
         error = null;
 
         try
@@ -127,18 +125,18 @@
         }
         finally
         {
-            isSavingCategories = false;
+            isBusy = false;
         }
     }
 
     private async Task UpdateStatus(bool value)
     {
-        if (isSavingStatus)
+        if (isBusy)
             return;
 
         var previous = isActive;
         isActive = value;
-        isSavingStatus = true;
+        isBusy = true;
         error = null;
 
         try
@@ -159,7 +157,7 @@
         }
         finally
         {
-            isSavingStatus = false;
+            isBusy = false;
         }
     }
 
@@ -173,7 +171,7 @@
         if (confirmed is not true)
             return;
 
-        isDeleting = true;
+        isBusy = true;
         error = null;
 
         try
@@ -191,7 +189,7 @@
         }
         finally
         {
-            isDeleting = false;
+            isBusy = false;
         }
     }
 

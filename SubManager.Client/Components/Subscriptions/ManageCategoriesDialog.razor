@@ -99,8 +99,7 @@
     {
         var parameters = new DialogParameters<CategoryDialog>
         {
-            { dialog => dialog.Category, category },
-            { dialog => dialog.UsedColors, UsedColors() }
+            { dialog => dialog.Category, category }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("Edit category", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
@@ -109,8 +108,7 @@
             return;
 
         var index = categories.FindIndex(candidate => candidate.Id == category.Id);
-        if (index >= 0)
-            categories[index] = updatedCategory;
+        categories[index] = updatedCategory;
         SortCategories();
     }
 

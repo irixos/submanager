@@ -88,22 +88,17 @@ public sealed class ChannelService(
                 }))
                     duplicateCount++;
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 failedCount++;
             }
         }
 
         var candidateIds = candidatesById.Keys.ToList();
-        var existingIds = await db.Channels
+        var existingIdSet = await db.Channels
             .Where(channel => candidateIds.Contains(channel.YoutubeChannelId))
             .Select(channel => channel.YoutubeChannelId)
-            .ToListAsync(ct);
-        var existingIdSet = existingIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
         var importedChannels = candidatesById
             .Where(candidate => !existingIdSet.Contains(candidate.Key))
             .Select(candidate => candidate.Value)
@@ -112,15 +107,13 @@ public sealed class ChannelService(
         await db.Channels.AddRangeAsync(importedChannels, ct);
         await db.SaveChangesAsync(ct);
         
-        var importedCount = importedChannels.Count;
-        var candidatesFound = candidatesById.Count;
         duplicateCount += existingIdSet.Count;
         
         return new ImportChannelsResponse
         {
-            CandidatesFound = candidatesFound,
+            CandidatesFound = candidatesById.Count,
             DuplicateCount = duplicateCount,
-            ImportedCount = importedCount,
+            ImportedCount = importedChannels.Count,
             FailedCount = failedCount,
             ImportedChannels = importedChannels.Select(ChannelMappings.MapToChannelResponse).ToList()
         };

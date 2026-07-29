@@ -76,8 +76,7 @@
             return;
         }
 
-        var usedColors = UsedColors.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        color = new MudColor(Palette.FirstOrDefault(candidate => !usedColors.Contains(candidate)) ?? "#594AE2");
+        color = new MudColor(Palette.Except(UsedColors, StringComparer.OrdinalIgnoreCase).FirstOrDefault() ?? "#594AE2");
     }
 
     private void Cancel() => MudDialog.Cancel();

@@ -3,7 +3,7 @@
 <div class="subscriptions-toolbar">
 <MudPaper Square="true" Elevation="1" Class="pa-2 mb-3">
     <MudStack Spacing="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
             <MudSpacer />
             @if (HasActiveFilters)
             {
@@ -27,19 +27,20 @@
                                aria-label="Import subscriptions" />
             </MudTooltip>
             <MudTooltip Text="Category options">
-                <MudMenu @ref="categoryMenu"
-                         Icon="@Icons.Material.Filled.Label"
+                <MudMenu Icon="@Icons.Material.Filled.Label"
                          AriaLabel="Category options"
                          AnchorOrigin="Origin.BottomRight"
                          TransformOrigin="Origin.TopRight">
-                    <MudMenuItem Icon="@Icons.Material.Filled.Add" OnClick="AddCategory">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Add"
+                                 OnClick="@(() => AddCategoryRequested.InvokeAsync())">
                         Add category
                     </MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="ManageCategories">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                 OnClick="@(() => ManageCategoriesRequested.InvokeAsync())">
                         Manage categories
                     </MudMenuItem>
                     <MudMenuItem Icon="@(ShowCategories ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
-                                 OnClick="ToggleCategoryVisibility">
+                                 OnClick="@(() => ShowCategoriesChanged.InvokeAsync(!ShowCategories))">
                         Show categories in list
                     </MudMenuItem>
                 </MudMenu>
@@ -49,8 +50,8 @@
         @if (showSearch)
         {
             <MudTextField T="string"
-                          Value="searchValue"
-                          ValueChanged="OnSearchChanged"
+                          Value="SearchText"
+                          ValueChanged="SearchTextChanged"
                           Label="Channel name"
                           Placeholder="Search subscriptions"
                           Variant="Variant.Outlined"
@@ -81,8 +82,6 @@
 </div>
 
 @code {
-    private MudMenu? categoryMenu;
-    private string searchValue = string.Empty;
     private bool showSearch;
     private bool showFilters;
 
@@ -122,36 +121,7 @@
     private bool HasActiveFilters =>
         !string.IsNullOrWhiteSpace(SearchText) || SelectedCategoryIds.Count > 0;
 
-    protected override void OnParametersSet()
-    {
-        searchValue = SearchText;
-    }
-
     private void ToggleSearch() => showSearch = !showSearch;
 
     private void ToggleFilters() => showFilters = !showFilters;
-
-    private async Task AddCategory()
-    {
-        await categoryMenu!.CloseMenuAsync();
-        await AddCategoryRequested.InvokeAsync();
-    }
-
-    private async Task ManageCategories()
-    {
-        await categoryMenu!.CloseMenuAsync();
-        await ManageCategoriesRequested.InvokeAsync();
-    }
-
-    private async Task ToggleCategoryVisibility()
-    {
-        await categoryMenu!.CloseMenuAsync();
-        await ShowCategoriesChanged.InvokeAsync(!ShowCategories);
-    }
-
-    private async Task OnSearchChanged(string value)
-    {
-        searchValue = value;
-        await SearchTextChanged.InvokeAsync(value);
-    }
 }

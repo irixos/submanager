@@ -11,15 +11,14 @@
 <PageTitle>Subscriptions</PageTitle>
 
 <SubscriptionToolbar Categories="categories"
-                     SearchText="@searchText"
-                     SearchTextChanged="SearchChanged"
-                     SelectedCategoryIds="selectedCategoryIds"
-                     SelectedCategoryIdsChanged="CategoriesChanged"
+                     @bind-SearchText="searchText"
+                     @bind-SearchText:after="RefreshChannels"
+                     @bind-SelectedCategoryIds="selectedCategoryIds"
+                     @bind-SelectedCategoryIds:after="RefreshChannels"
                      ImportRequested="ImportChannels"
                      AddCategoryRequested="AddCategory"
                      ManageCategoriesRequested="ManageCategories"
-                     ShowCategories="showCategories"
-                     ShowCategoriesChanged="@((bool value) => showCategories = value)"
+                     @bind-ShowCategories="showCategories"
                      ClearRequested="ClearFilters" />
 
 @if (categoryLoadError is not null)
@@ -153,10 +152,8 @@ else
             categories.Clear();
             categories.AddRange(loadedCategories);
         }
-        catch (OperationCanceledException) when (lifetimeCancellationTokenSource.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
+        catch (Exception exception) when (
+            exception is not OperationCanceledException || !lifetimeCancellationTokenSource.IsCancellationRequested)
         {
             categoryLoadError = exception;
         }
@@ -294,10 +291,8 @@ else
                     ? channels.Count < channelPage.Count.Value
                     : newChannels.Count == PageSize);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
+        catch (Exception exception) when (
+            exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             loadError = exception;
         }
@@ -326,18 +321,6 @@ else
     {
         return Regex.Replace(value, "([(),|\\\\])", "\\$1")
             .Replace("/i", "\\/i", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task SearchChanged(string value)
-    {
-        searchText = value;
-        await RefreshChannels();
-    }
-
-    private async Task CategoriesChanged(IReadOnlyCollection<int> categoryIds)
-    {
-        selectedCategoryIds = categoryIds;
-        await RefreshChannels();
     }
 
     private async Task ClearFilters()

@@ -42,8 +42,6 @@
 
 @code {
     private const long MaxFileSize = 5 * 1024 * 1024;
-    private static readonly HashSet<string> AllowedExtensions =
-        new([".txt", ".csv", ".json"], StringComparer.OrdinalIgnoreCase);
 
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private IBrowserFile? file;
@@ -69,7 +67,7 @@
             return "Choose a non-empty subscriptions file.";
         if (selectedFile.Size > MaxFileSize)
             return "The subscriptions file must be smaller than 5 MB.";
-        if (!AllowedExtensions.Contains(Path.GetExtension(selectedFile.Name)))
+        if (Path.GetExtension(selectedFile.Name).ToLowerInvariant() is not (".txt" or ".csv" or ".json"))
             return "Choose a TXT, CSV, or JSON file.";
 
         return null;

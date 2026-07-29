@@ -16,8 +16,7 @@
                               AutoFocus="true" />
                 <MudText Typo="Typo.subtitle2">Categories (optional)</MudText>
                 <CategoryChipSet Categories="categories"
-                                 SelectedIds="selectedCategoryIds"
-                                 SelectedIdsChanged="OnCategoriesChanged"
+                                 @bind-SelectedIds="selectedCategoryIds"
                                  AddRequested="AddCategory"
                                  AllowCreate="true"
                                  Disabled="isSaving" />
@@ -62,8 +61,6 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void OnCategoriesChanged(IReadOnlyCollection<int> categoryIds) => selectedCategoryIds = categoryIds;
-
     private async Task AddCategory()
     {
         var parameters = new DialogParameters<CategoryDialog>
@@ -77,7 +74,7 @@
             return;
 
         categories.Add(category);
-        selectedCategoryIds = selectedCategoryIds.Append(category.Id.GetValueOrDefault()).Distinct().ToArray();
+        selectedCategoryIds = selectedCategoryIds.Append(category.Id.GetValueOrDefault()).ToArray();
     }
 
     private async Task Create()
