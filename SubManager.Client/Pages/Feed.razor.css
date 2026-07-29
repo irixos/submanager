@@ -11,3 +11,34 @@
     gap: 1.25rem;
     grid-template-columns: minmax(0, 1fr);
 }
+
+.pull-refresh {
+    height: 0;
+    position: relative;
+    z-index: 6;
+}
+
+.pull-refresh-indicator {
+    align-items: center;
+    background: var(--mud-palette-surface);
+    border-radius: 999px;
+    box-shadow: var(--mud-elevation-4);
+    display: flex;
+    gap: 0.4rem;
+    left: 50%;
+    opacity: 0;
+    padding: 0.4rem 0.75rem;
+    pointer-events: none;
+    position: absolute;
+    transform: translate(-50%, calc(var(--pull-distance, 0px) - 3rem));
+    transition: opacity 100ms ease-in-out;
+    white-space: nowrap;
+}
+
+.pull-refresh-active .pull-refresh-indicator {
+    opacity: 1;
+}
+
+.pull-refresh-ready .pull-refresh-indicator {
+    color: var(--mud-palette-primary);
+}

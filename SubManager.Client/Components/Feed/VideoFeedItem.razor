@@ -6,13 +6,27 @@
        href="@VideoUrl"
        target="_blank"
        rel="noopener noreferrer"
+       @onclick="OpenVideo"
        aria-label="@($"Watch {Video.Title}")"></a>
 
     <div class="video-thumbnail-container">
         <img src="@Video.ThumbnailUrl"
              alt=""
              referrerpolicy="no-referrer"
-             class="video-thumbnail" />
+             class="video-thumbnail @(Video.IsWatched is true ? "video-thumbnail-watched" : null)" />
+        @if (Video.IsWatched is true)
+        {
+            <div class="restore-watched">
+                <MudTooltip Text="Mark as unwatched">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                   Color="Color.Inherit"
+                                   Size="Size.Small"
+                                   Disabled="IsUpdatingWatchedState"
+                                   OnClick="RestoreVideo"
+                                   aria-label="Mark as unwatched" />
+                </MudTooltip>
+            </div>
+        }
     </div>
 
     <div class="video-details">
@@ -33,7 +47,7 @@
         }
 
         <div class="video-text">
-            <MudText Typo="Typo.subtitle2" Class="video-title">@Video.Title</MudText>
+            <div class="video-title">@Video.Title</div>
             <a class="channel-name-link"
                href="@ChannelUrl"
                target="_blank"
@@ -61,9 +75,22 @@
     [Parameter]
     public FeedViewMode ViewMode { get; set; }
 
+    [Parameter]
+    public EventCallback<VideoResponse> Opened { get; set; }
+
+    [Parameter]
+    public EventCallback<VideoResponse> RestoreRequested { get; set; }
+
+    [Parameter]
+    public bool IsUpdatingWatchedState { get; set; }
+
     private string VideoUrl =>
         $"https://www.youtube.com/watch?v={Uri.EscapeDataString(Video.YoutubeVideoId ?? string.Empty)}";
 
     private string ChannelUrl =>
         $"https://www.youtube.com/channel/{Uri.EscapeDataString(Video.Channel?.YoutubeChannelId ?? string.Empty)}";
+
+    private Task OpenVideo() => Opened.InvokeAsync(Video);
+
+    private Task RestoreVideo() => RestoreRequested.InvokeAsync(Video);
 }

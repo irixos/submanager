@@ -12,6 +12,12 @@
                            OnClick="ToggleFilters"
                            aria-label="Filter videos" />
         </MudTooltip>
+        <MudTooltip Text="Refresh feed">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                           Disabled="IsRefreshing"
+                           OnClick="ReloadRequested"
+                           aria-label="Refresh feed" />
+        </MudTooltip>
         <MudTooltip Text="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")">
             <MudIconButton Icon="@(ViewMode == FeedViewMode.Grid ? Icons.Material.Filled.ViewList : Icons.Material.Filled.GridView)"
                            OnClick="ToggleView"
@@ -85,6 +91,12 @@
 
     [Parameter]
     public EventCallback<FeedViewMode> ViewModeChanged { get; set; }
+
+    [Parameter]
+    public EventCallback ReloadRequested { get; set; }
+
+    [Parameter]
+    public bool IsRefreshing { get; set; }
 
     [Parameter]
     public EventCallback ClearRequested { get; set; }
