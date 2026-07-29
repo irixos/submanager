@@ -166,7 +166,7 @@ else
             { dialog => dialog.Categories, categories }
         };
         var dialog = await DialogService.ShowAsync<AddChannelDialog>("Add channel", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = true, CloseOnEscapeKey = false });
         await dialog.Result;
         await RefreshPage();
     }
@@ -178,7 +178,7 @@ else
             { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = true, CloseOnEscapeKey = false });
         var category = await dialog.GetReturnValueAsync<CategoryResponse>();
         if (category is not null)
             await RefreshCategoryState();
@@ -191,7 +191,7 @@ else
             { dialog => dialog.Categories, categories }
         };
         var dialog = await DialogService.ShowAsync<ManageCategoriesDialog>("Manage categories", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = true, CloseOnEscapeKey = false });
         await dialog.Result;
         await RefreshCategoryState();
     }
@@ -208,7 +208,7 @@ else
             {
                 FullWidth = true,
                 MaxWidth = MaxWidth.Small,
-                BackdropClick = false,
+                BackdropClick = true,
                 CloseOnEscapeKey = false
             });
         await dialog.Result;
@@ -218,7 +218,7 @@ else
     private async Task ImportChannels()
     {
         var dialog = await DialogService.ShowAsync<ImportChannelsDialog>("Import subscriptions",
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = true, CloseOnEscapeKey = false });
         var response = await dialog.GetReturnValueAsync<ImportChannelsResponse>();
         if (response is null)
             return;
