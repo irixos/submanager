@@ -64,6 +64,10 @@
                     <span>@Video.PublishedDate.Value.Humanize()</span>
                 }
             </div>
+            @if (ShowCategories)
+            {
+                <CategorySummary Categories="Video.Categories?.ToArray() ?? []" />
+            }
         </div>
     </div>
 </article>
@@ -83,6 +87,9 @@
 
     [Parameter]
     public bool IsUpdatingWatchedState { get; set; }
+
+    [Parameter]
+    public bool ShowCategories { get; set; }
 
     private string VideoUrl =>
         $"https://www.youtube.com/watch?v={Uri.EscapeDataString(Video.YoutubeVideoId ?? string.Empty)}";

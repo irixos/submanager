@@ -31,6 +31,8 @@
              ViewModeChanged="SetViewMode"
              ReloadRequested="RefreshFeed"
              IsRefreshing="isRefreshing"
+             ShowCategories="showCategories"
+             ShowCategoriesChanged="SetShowCategories"
              ClearRequested="ClearFilters" />
 
 @if (filterOptionsError is not null)
@@ -79,6 +81,7 @@ else
                                ViewMode="viewMode"
                                Opened="MarkWatched"
                                RestoreRequested="RestoreUnwatched"
+                               ShowCategories="showCategories"
                                IsUpdatingWatchedState="watchedUpdates.Contains(video.Id.GetValueOrDefault())" />
             }
         </div>

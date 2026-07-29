@@ -30,6 +30,7 @@ public partial class Feed
     private bool hasLoaded;
     private bool hasMoreVideos = true;
     private bool isRefreshing;
+    private bool showCategories;
     private Exception? loadError;
     private Exception? filterOptionsError;
 
@@ -72,10 +73,10 @@ public partial class Feed
         interop = new FeedInterop(JS);
         var storedViewMode = await interop.GetViewModeAsync();
         if (Enum.TryParse<FeedViewMode>(storedViewMode, true, out var value))
-        {
             viewMode = value;
-            StateHasChanged();
-        }
+
+        showCategories = await interop.GetShowCategoriesAsync();
+        StateHasChanged();
 
         dotNetReference = DotNetObjectReference.Create(this);
         await interop.InitializePullToRefreshAsync(pullRefreshElement, dotNetReference);
@@ -230,6 +231,13 @@ public partial class Feed
         viewMode = value;
         if (interop is not null)
             await interop.SetViewModeAsync(value.ToString().ToLowerInvariant());
+    }
+
+    private async Task SetShowCategories(bool value)
+    {
+        showCategories = value;
+        if (interop is not null)
+            await interop.SetShowCategoriesAsync(value);
     }
 
     private async Task ClearFilters()

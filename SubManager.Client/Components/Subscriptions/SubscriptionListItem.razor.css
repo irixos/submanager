@@ -23,38 +23,3 @@
 .subscription-name-inactive {
     color: var(--mud-palette-text-disabled);
 }
-
-.category-summary {
-    align-items: center;
-    display: flex;
-    gap: 0.25rem;
-    margin-top: 0.2rem;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.category-summary-inactive {
-    filter: grayscale(1);
-    opacity: 0.55;
-}
-
-.category-mini-chip {
-    border-radius: 999px;
-    display: inline-block;
-    flex: 0 1 auto;
-    font-size: 0.68rem;
-    line-height: 1.25rem;
-    max-width: 7rem;
-    overflow: hidden;
-    padding: 0 0.45rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.category-overflow,
-.uncategorized {
-    color: var(--mud-palette-text-secondary);
-    flex: 0 0 auto;
-    font-size: 0.7rem;
-}

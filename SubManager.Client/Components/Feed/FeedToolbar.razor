@@ -37,6 +37,17 @@
                            OnClick="ToggleView"
                            aria-label="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")" />
         </MudTooltip>
+        <MudTooltip Text="Category display">
+            <MudMenu Icon="@Icons.Material.Filled.Label"
+                     AriaLabel="Category display"
+                     AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight">
+                <MudMenuItem Icon="@(ShowCategories ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
+                             OnClick="@(() => ShowCategoriesChanged.InvokeAsync(!ShowCategories))">
+                    Show categories on videos
+                </MudMenuItem>
+            </MudMenu>
+        </MudTooltip>
     </Actions>
     <ExpandedContent>
         @if (showSearch)
@@ -153,6 +164,12 @@
 
     [Parameter]
     public bool IsRefreshing { get; set; }
+
+    [Parameter]
+    public bool ShowCategories { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowCategoriesChanged { get; set; }
 
     [Parameter]
     public EventCallback ClearRequested { get; set; }

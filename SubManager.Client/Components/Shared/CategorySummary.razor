@@ -1,0 +1,54 @@
+@using SubManager.ApiClient
+
+<div class="category-summary @(Inactive ? "category-summary-inactive" : null)">
+    @if (categories.Count == 0)
+    {
+        <span class="uncategorized">Uncategorized</span>
+    }
+    else
+    {
+        @foreach (var category in categories.Take(2))
+        {
+            <span @key="category.Id"
+                  class="category-mini-chip"
+                  style="@GetChipStyle(category)"
+                  title="@category.Name">
+                @category.Name
+            </span>
+        }
+
+        @if (categories.Count > 2)
+        {
+            var additionalCount = categories.Count - 2;
+            var additionalNames = string.Join(", ", categories.Skip(2).Select(category => category.Name));
+            <span class="category-overflow"
+                  title="@additionalNames"
+                  aria-label="@($"{additionalCount} additional categories")">
+                +@additionalCount
+            </span>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<CategoryResponse> categories = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
+
+    [Parameter]
+    public bool Inactive { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        categories = Categories
+            .OrderBy(category => category.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string GetChipStyle(CategoryResponse category)
+    {
+        var color = CategoryColor.Normalize(category.Color);
+        return $"background-color: {color}; color: {CategoryColor.GetForeground(color)};";
+    }
+}

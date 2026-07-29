@@ -8,6 +8,8 @@ public sealed class FeedInterop(IJSRuntime js) : IAsyncDisposable
     private const string ModulePath = "./Pages/Feed.razor.js";
     private const string GetViewModeMethod = "getViewMode";
     private const string SetViewModeMethod = "setViewMode";
+    private const string GetShowCategoriesMethod = "getShowCategories";
+    private const string SetShowCategoriesMethod = "setShowCategories";
     private const string InitializePullToRefreshMethod = "initializePullToRefresh";
     private const string DisposeMethod = "dispose";
     private IJSObjectReference? module;
@@ -27,6 +29,18 @@ public sealed class FeedInterop(IJSRuntime js) : IAsyncDisposable
     {
         var jsModule = await GetModuleAsync();
         await jsModule.InvokeVoidAsync(SetViewModeMethod, value);
+    }
+
+    public async ValueTask<bool> GetShowCategoriesAsync()
+    {
+        var jsModule = await GetModuleAsync();
+        return await jsModule.InvokeAsync<bool>(GetShowCategoriesMethod);
+    }
+
+    public async ValueTask SetShowCategoriesAsync(bool value)
+    {
+        var jsModule = await GetModuleAsync();
+        await jsModule.InvokeVoidAsync(SetShowCategoriesMethod, value);
     }
 
     public async ValueTask InitializePullToRefreshAsync(

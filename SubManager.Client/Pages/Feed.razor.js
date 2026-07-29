@@ -1,4 +1,5 @@
 const VIEW_MODE_KEY = 'submanager.feed.viewMode';
+const SHOW_CATEGORIES_KEY = 'submanager.feed.showCategories';
 const ON_PULL_TO_REFRESH = 'OnPullToRefresh';
 
 let pullToRefresh;
@@ -9,6 +10,14 @@ export function getViewMode() {
 
 export function setViewMode(value) {
     localStorage.setItem(VIEW_MODE_KEY, value);
+}
+
+export function getShowCategories() {
+    return localStorage.getItem(SHOW_CATEGORIES_KEY) === 'true';
+}
+
+export function setShowCategories(value) {
+    localStorage.setItem(SHOW_CATEGORIES_KEY, value);
 }
 
 class PullToRefresh {
