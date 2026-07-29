@@ -32,11 +32,8 @@
                                aria-label="Refresh feed" />
             </MudTooltip>
         }
-        <MudTooltip Text="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")">
-            <MudIconButton Icon="@(ViewMode == FeedViewMode.Grid ? Icons.Material.Filled.ViewList : Icons.Material.Filled.GridView)"
-                           OnClick="ToggleView"
-                           aria-label="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")" />
-        </MudTooltip>
+        <ViewModeToggle IsGrid="@(ViewMode == FeedViewMode.Grid)"
+                        IsGridChanged="SetGridView" />
         <MudTooltip Text="Category display">
             <MudMenu Icon="@Icons.Material.Filled.Label"
                      AriaLabel="Category display"
@@ -220,9 +217,6 @@
     private string? GetChannelName(int id) =>
         Channels.FirstOrDefault(channel => channel.Id == id)?.Name;
 
-    private Task ToggleView()
-    {
-        var value = ViewMode == FeedViewMode.Grid ? FeedViewMode.List : FeedViewMode.Grid;
-        return ViewModeChanged.InvokeAsync(value);
-    }
+    private Task SetGridView(bool isGrid) =>
+        ViewModeChanged.InvokeAsync(isGrid ? FeedViewMode.Grid : FeedViewMode.List);
 }

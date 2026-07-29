@@ -23,6 +23,8 @@
                                OnClick="ImportRequested"
                                aria-label="Import subscriptions" />
             </MudTooltip>
+            <ViewModeToggle IsGrid="IsGrid"
+                            IsGridChanged="IsGridChanged" />
             <MudTooltip Text="Category options">
                 <MudMenu Icon="@Icons.Material.Filled.Label"
                          AriaLabel="Category options"
@@ -38,7 +40,7 @@
                     </MudMenuItem>
                     <MudMenuItem Icon="@(ShowCategories ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
                                  OnClick="@(() => ShowCategoriesChanged.InvokeAsync(!ShowCategories))">
-                        Show categories in list
+                        Show categories
                     </MudMenuItem>
                 </MudMenu>
             </MudTooltip>
@@ -110,6 +112,12 @@
 
     [Parameter]
     public EventCallback<bool> ShowCategoriesChanged { get; set; }
+
+    [Parameter]
+    public bool IsGrid { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsGridChanged { get; set; }
 
     [Parameter]
     public EventCallback ClearRequested { get; set; }

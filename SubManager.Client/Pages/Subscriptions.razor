@@ -22,6 +22,8 @@
                      ManageCategoriesRequested="ManageCategories"
                      ShowCategories="showCategories"
                      ShowCategoriesChanged="SetShowCategories"
+                     IsGrid="isGrid"
+                     IsGridChanged="SetGridView"
                      ClearRequested="ClearFilters" />
 
 @if (categoryLoadError is not null)
@@ -71,18 +73,21 @@ else if (hasLoaded && channels.Count == 0)
 else
 {
     <InfiniteScroll ItemCount="channels.Count"
+                    LayoutKey="@(isGrid ? "grid" : "list")"
                     HasMore="hasMoreChannels && loadError is null"
                     IsLoading="isLoading"
                     LoadMore="FetchChannels">
-        <MudList T="string">
-            @foreach (var channel in channels)
-            {
-                <SubscriptionListItem @key="channel.Id"
-                                      Channel="channel"
-                                      ShowCategories="showCategories"
-                                      Selected="EditChannel" />
-            }
-        </MudList>
+        <div class="@(isGrid ? "subscription-grid" : null)">
+            <MudList T="string">
+                @foreach (var channel in channels)
+                {
+                    <SubscriptionListItem @key="channel.Id"
+                                          Channel="channel"
+                                          ShowCategories="showCategories"
+                                          Selected="EditChannel" />
+                }
+            </MudList>
+        </div>
 
         @if (isLoading)
         {
@@ -117,6 +122,7 @@ else
     private bool isLoading;
     private bool hasLoaded;
     private bool hasMoreChannels = true;
+    private bool isGrid;
     private bool showCategories;
     private Exception? loadError;
     private Exception? categoryLoadError;
@@ -136,7 +142,9 @@ else
             return;
 
         interop = new SubscriptionsInterop(JS);
-        showCategories = await interop.GetShowCategoriesAsync();
+        var preferences = await interop.GetPreferencesAsync();
+        showCategories = preferences.ShowCategories;
+        isGrid = preferences.GridView;
         StateHasChanged();
     }
 
@@ -366,6 +374,13 @@ else
         showCategories = value;
         if (interop is not null)
             await interop.SetShowCategoriesAsync(value);
+    }
+
+    private async Task SetGridView(bool value)
+    {
+        isGrid = value;
+        if (interop is not null)
+            await interop.SetGridViewAsync(value);
     }
 
     public async ValueTask DisposeAsync()

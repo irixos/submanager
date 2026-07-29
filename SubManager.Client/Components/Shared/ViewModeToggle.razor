@@ -1,0 +1,13 @@
+<MudTooltip Text="@(IsGrid ? "Show list view" : "Show grid view")">
+    <MudIconButton Icon="@(IsGrid ? Icons.Material.Filled.ViewList : Icons.Material.Filled.GridView)"
+                   OnClick="@(() => IsGridChanged.InvokeAsync(!IsGrid))"
+                   aria-label="@(IsGrid ? "Show list view" : "Show grid view")" />
+</MudTooltip>
+
+@code {
+    [Parameter]
+    public bool IsGrid { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsGridChanged { get; set; }
+}

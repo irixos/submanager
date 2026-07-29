@@ -20,11 +20,15 @@
     public int ItemCount { get; set; }
 
     [Parameter]
+    public string? LayoutKey { get; set; }
+
+    [Parameter]
     public int ThresholdPx { get; set; } = 300;
 
     private IScrollListener? _scrollListener;
     private bool _loadRequested;
     private int _lastCheckedItemCount = -1;
+    private string? _lastCheckedLayoutKey;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -34,9 +38,12 @@
             _scrollListener.OnScroll += OnScroll;
         }
 
-        if (!IsLoading && HasMore && ItemCount != _lastCheckedItemCount)
+        if (!IsLoading &&
+            HasMore &&
+            (ItemCount != _lastCheckedItemCount || LayoutKey != _lastCheckedLayoutKey))
         {
             _lastCheckedItemCount = ItemCount;
+            _lastCheckedLayoutKey = LayoutKey;
             var scrollData = await _scrollListener.GetCurrentScrollDataAsync();
             await TryLoadMoreAsync(scrollData);
         }
