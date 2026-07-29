@@ -25,6 +25,8 @@
              SelectedCategoryIdsChanged="SetSelectedCategories"
              SelectedChannelIds="selectedChannelIds"
              SelectedChannelIdsChanged="SetSelectedChannels"
+             SearchText="@searchText"
+             SearchTextChanged="SetSearchText"
              ViewMode="viewMode"
              ViewModeChanged="SetViewMode"
              ReloadRequested="RefreshFeed"
@@ -54,7 +56,7 @@ else if (hasLoaded && videos.Count == 0 && HasFilters)
         <MudStack AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" />
             <MudText Typo="Typo.h6">No videos match</MudText>
-            <MudText Align="Align.Center">Try another category or channel selection.</MudText>
+            <MudText Align="Align.Center">Try another title, category, or channel selection.</MudText>
             <MudButton Variant="Variant.Outlined" OnClick="ClearFilters">Clear filters</MudButton>
         </MudStack>
     </MudPaper>

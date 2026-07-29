@@ -6,18 +6,32 @@
         {
             <MudButton Size="Size.Small" OnClick="ClearRequested">Clear filters</MudButton>
         }
+        <MudTooltip Text="Search videos">
+            <MudIconButton Icon="@Icons.Material.Filled.Search"
+                           Color="@(showSearch || !string.IsNullOrWhiteSpace(SearchText) ? Color.Primary : Color.Default)"
+                           OnClick="ToggleSearch"
+                           aria-label="Search videos" />
+        </MudTooltip>
         <MudTooltip Text="Filter videos">
             <MudIconButton Icon="@Icons.Material.Filled.FilterList"
                            Color="@(showFilters || HasActiveFilters ? Color.Primary : Color.Default)"
                            OnClick="ToggleFilters"
                            aria-label="Filter videos" />
         </MudTooltip>
-        <MudTooltip Text="Refresh feed">
-            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
-                           Disabled="IsRefreshing"
-                           OnClick="ReloadRequested"
-                           aria-label="Refresh feed" />
-        </MudTooltip>
+        @if (IsRefreshing)
+        {
+            <div class="feed-refresh-progress" role="status" aria-label="Refreshing feed">
+                <MudProgressCircular Size="Size.Small" Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudTooltip Text="Refresh feed">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               OnClick="ReloadRequested"
+                               aria-label="Refresh feed" />
+            </MudTooltip>
+        }
         <MudTooltip Text="@(ViewMode == FeedViewMode.Grid ? "Show list view" : "Show grid view")">
             <MudIconButton Icon="@(ViewMode == FeedViewMode.Grid ? Icons.Material.Filled.ViewList : Icons.Material.Filled.GridView)"
                            OnClick="ToggleView"
@@ -25,6 +39,23 @@
         </MudTooltip>
     </Actions>
     <ExpandedContent>
+        @if (showSearch)
+        {
+            <MudTextField T="string"
+                          Value="SearchText"
+                          ValueChanged="SearchTextChanged"
+                          Label="Video title"
+                          Placeholder="Search videos"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          DebounceInterval="300"
+                          Clearable="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          AutoFocus="true" />
+        }
+
         @if (showFilters)
         {
             <MudText Typo="Typo.subtitle2">Categories</MudText>
@@ -46,27 +77,46 @@
             }
             else
             {
-                <MudChipSet T="int"
-                            SelectionMode="SelectionMode.MultiSelection"
-                            SelectedValues="SelectedChannelIds"
-                            SelectedValuesChanged="SelectedChannelIdsChanged">
-                    @foreach (var channel in Channels)
-                    {
-                        <MudChip T="int"
-                                 @key="channel.Id"
-                                 Value="channel.Id.GetValueOrDefault()"
-                                 Label="true">
-                            @channel.Name
-                        </MudChip>
-                    }
-                </MudChipSet>
+                <div class="channel-filter-menu">
+                    <MudMenu Label="@ChannelFilterLabel"
+                             Variant="Variant.Outlined"
+                             FullWidth="true"
+                             EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                             RelativeWidth="DropdownWidth.Adaptive"
+                             OpenChanged="OnChannelMenuOpenChanged">
+                        <div class="channel-filter-search"
+                             @onclick:stopPropagation="true"
+                             @onkeydown:stopPropagation="true">
+                            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
+                            <input class="channel-filter-search-input"
+                                   value="@channelSearchText"
+                                   @oninput="FilterChannels"
+                                   placeholder="Search channels"
+                                   aria-label="Search channels" />
+                        </div>
+                        @foreach (var channel in FilteredChannels)
+                        {
+                            var channelId = channel.Id.GetValueOrDefault();
+                            <MudMenuItem @key="channel.Id"
+                                         AutoClose="false"
+                                         Icon="@(SelectedChannelIds.Contains(channelId)
+                                             ? Icons.Material.Filled.CheckBox
+                                             : Icons.Material.Filled.CheckBoxOutlineBlank)"
+                                         OnClick="@(() => ToggleChannel(channelId))">
+                                @channel.Name
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </div>
             }
         }
     </ExpandedContent>
 </PageToolbar>
 
 @code {
+    private string channelSearchText = string.Empty;
     private bool showFilters;
+    private bool showSearch;
 
     [Parameter, EditorRequired]
     public IReadOnlyList<CategoryResponse> Categories { get; set; } = [];
@@ -87,6 +137,12 @@
     public EventCallback<IReadOnlyCollection<int>> SelectedChannelIdsChanged { get; set; }
 
     [Parameter]
+    public string SearchText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchTextChanged { get; set; }
+
+    [Parameter]
     public FeedViewMode ViewMode { get; set; }
 
     [Parameter]
@@ -102,9 +158,50 @@
     public EventCallback ClearRequested { get; set; }
 
     private bool HasActiveFilters =>
-        SelectedCategoryIds.Count > 0 || SelectedChannelIds.Count > 0;
+        !string.IsNullOrWhiteSpace(SearchText) ||
+        SelectedCategoryIds.Count > 0 ||
+        SelectedChannelIds.Count > 0;
 
-    private void ToggleFilters() => showFilters = !showFilters;
+    private IEnumerable<ChannelResponse> FilteredChannels =>
+        string.IsNullOrWhiteSpace(channelSearchText)
+            ? Channels
+            : Channels.Where(channel =>
+                channel.Name?.Contains(channelSearchText, StringComparison.OrdinalIgnoreCase) is true);
+
+    private void ToggleFilters()
+    {
+        showFilters = !showFilters;
+        if (!showFilters)
+            channelSearchText = string.Empty;
+    }
+
+    private void ToggleSearch() => showSearch = !showSearch;
+
+    private string ChannelFilterLabel =>
+        SelectedChannelIds.Count == 0
+            ? "Channels"
+            : string.Join(", ", SelectedChannelIds.Select(id => GetChannelName(id) ?? id.ToString()));
+
+    private void FilterChannels(ChangeEventArgs args) =>
+        channelSearchText = args.Value?.ToString() ?? string.Empty;
+
+    private void OnChannelMenuOpenChanged(bool open)
+    {
+        if (!open)
+            channelSearchText = string.Empty;
+    }
+
+    private Task ToggleChannel(int id)
+    {
+        var values = SelectedChannelIds.ToHashSet();
+        if (!values.Add(id))
+            values.Remove(id);
+
+        return SelectedChannelIdsChanged.InvokeAsync(values.ToArray());
+    }
+
+    private string? GetChannelName(int id) =>
+        Channels.FirstOrDefault(channel => channel.Id == id)?.Name;
 
     private Task ToggleView()
     {

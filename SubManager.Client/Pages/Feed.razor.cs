@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
@@ -19,6 +20,7 @@ public partial class Feed
     private CancellationTokenSource loadCancellationTokenSource = new();
     private IReadOnlyCollection<int> selectedCategoryIds = [];
     private IReadOnlyCollection<int> selectedChannelIds = [];
+    private string searchText = string.Empty;
     private FeedViewMode viewMode = FeedViewMode.Grid;
     private FeedInterop? interop;
     private DotNetObjectReference<Feed>? dotNetReference;
@@ -35,16 +37,21 @@ public partial class Feed
     public int? InitialChannelId { get; set; }
 
     private bool HasFilters =>
-        selectedCategoryIds.Count > 0 || selectedChannelIds.Count > 0;
+        !string.IsNullOrWhiteSpace(searchText) ||
+        selectedCategoryIds.Count > 0 ||
+        selectedChannelIds.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFilterOptions();
         var initialChannelId = InitialChannelId ?? GetChannelIdFromUri();
-        if (initialChannelId.HasValue &&
-            channels.Any(channel => channel.Id.GetValueOrDefault() == initialChannelId.Value))
-        {
+        if (initialChannelId.HasValue)
             selectedChannelIds = [initialChannelId.Value];
+
+        await LoadFilterOptions();
+        if (initialChannelId.HasValue &&
+            channels.All(channel => channel.Id.GetValueOrDefault() != initialChannelId.Value))
+        {
+            selectedChannelIds = [];
         }
 
         await FetchVideos();
@@ -124,7 +131,7 @@ public partial class Feed
         while (true)
         {
             var response = await ChannelsClient.GetChannelsAsync(
-                page, FilterPageSize, "Name, Id", null, lifetimeCancellationTokenSource.Token);
+                page, FilterPageSize, "Name, Id", "IsActive=true", lifetimeCancellationTokenSource.Token);
             var items = response.Data?.ToList() ?? [];
             result.AddRange(items);
 
@@ -181,6 +188,9 @@ public partial class Feed
     private string BuildFilter()
     {
         var filters = new List<string> { "IsShort=false" };
+        if (!string.IsNullOrWhiteSpace(searchText))
+            filters.Add($"Title=*{EscapeGridifyValue(searchText.Trim())}/i");
+
         filters.AddRange(selectedCategoryIds.Select(id => $"Categories.Id={id}"));
 
         if (selectedChannelIds.Count == 1)
@@ -189,6 +199,12 @@ public partial class Feed
             filters.Add($"({string.Join('|', selectedChannelIds.Select(id => $"Channel.Id={id}"))})");
 
         return string.Join(',', filters);
+    }
+
+    private static string EscapeGridifyValue(string value)
+    {
+        return Regex.Replace(value, "([(),|\\\\])", "\\$1")
+            .Replace("/i", "\\/i", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task SetSelectedCategories(IReadOnlyCollection<int> values)
@@ -203,6 +219,12 @@ public partial class Feed
         await ReloadVideos();
     }
 
+    private async Task SetSearchText(string value)
+    {
+        searchText = value;
+        await ReloadVideos();
+    }
+
     private async Task SetViewMode(FeedViewMode value)
     {
         viewMode = value;
@@ -214,6 +236,7 @@ public partial class Feed
     {
         selectedCategoryIds = [];
         selectedChannelIds = [];
+        searchText = string.Empty;
         await ReloadVideos();
     }
 
@@ -294,7 +317,16 @@ public partial class Feed
         {
             await VideosClient.RefreshVideosAsync(lifetimeCancellationTokenSource.Token);
             await ReloadVideos();
-            Snackbar.Add("Feed refreshed.", Severity.Success);
+            Snackbar.Add("Feed refreshed.", Severity.Success, options =>
+            {
+                options.VisibleStateDuration = 5000;
+                options.HideTransitionDuration = 1000;
+                options.CloseButtonClickFunc = snackbar =>
+                {
+                    snackbar.ForceClose();
+                    return Task.CompletedTask;
+                };
+            });
         }
         catch (ApiException exception) when (exception.StatusCode == 409)
         {

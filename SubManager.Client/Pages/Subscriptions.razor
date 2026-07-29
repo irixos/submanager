@@ -8,6 +8,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
 
 <PageTitle>Subscriptions</PageTitle>
 
@@ -224,8 +225,15 @@ else
                 BackdropClick = true,
                 CloseOnEscapeKey = false
             });
-        await dialog.Result;
-        await RefreshPage();
+        var result = await dialog.Result;
+        if (result?.Data is int channelId)
+        {
+            NavigationManager.NavigateTo($"/feed?channel={channelId}");
+            return;
+        }
+
+        if (result?.Canceled is false)
+            await RefreshPage();
     }
 
     private async Task ImportChannels()
