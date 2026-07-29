@@ -86,7 +86,7 @@
             { dialog => dialog.UsedColors, UsedColors() }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
         var category = await dialog.GetReturnValueAsync<CategoryResponse>();
         if (category is null)
             return;
@@ -103,7 +103,7 @@
             { dialog => dialog.UsedColors, UsedColors() }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("Edit category", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
         var updatedCategory = await dialog.GetReturnValueAsync<CategoryResponse>();
         if (updatedCategory is null)
             return;

@@ -70,7 +70,8 @@
         {
             { dialog => dialog.UsedColors, categories.Select(category => category.Color).OfType<string>().ToArray() }
         };
-        var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters);
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Add category", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false });
         var category = await dialog.GetReturnValueAsync<CategoryResponse>();
         if (category is null)
             return;
