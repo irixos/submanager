@@ -227,7 +227,17 @@ else
             $"Imported {response.ImportedCount.GetValueOrDefault()}, " +
             $"skipped {response.DuplicateCount.GetValueOrDefault()} duplicates, " +
             $"and failed {response.FailedCount.GetValueOrDefault()}.",
-            response.FailedCount.GetValueOrDefault() > 0 ? Severity.Warning : Severity.Success);
+            response.FailedCount.GetValueOrDefault() > 0 ? Severity.Warning : Severity.Success,
+            options =>
+            {
+                options.VisibleStateDuration = 5000;
+                options.HideTransitionDuration = 1000;
+                options.CloseButtonClickFunc = snackbar =>
+                {
+                    snackbar.ForceClose();
+                    return Task.CompletedTask;
+                };
+            });
         await RefreshPage();
     }
 
