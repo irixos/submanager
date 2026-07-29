@@ -7,6 +7,7 @@
 @inject CategoriesClient CategoriesClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>Subscriptions</PageTitle>
 
@@ -18,7 +19,8 @@
                      ImportRequested="ImportChannels"
                      AddCategoryRequested="AddCategory"
                      ManageCategoriesRequested="ManageCategories"
-                     @bind-ShowCategories="showCategories"
+                     ShowCategories="showCategories"
+                     ShowCategoriesChanged="SetShowCategories"
                      ClearRequested="ClearFilters" />
 
 @if (categoryLoadError is not null)
@@ -117,6 +119,7 @@ else
     private bool showCategories;
     private Exception? loadError;
     private Exception? categoryLoadError;
+    private SubscriptionsInterop? interop;
 
     private bool HasFilters =>
         !string.IsNullOrWhiteSpace(searchText) || selectedCategoryIds.Count > 0;
@@ -124,6 +127,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(FetchChannels(), FetchCategories());
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        interop = new SubscriptionsInterop(JS);
+        showCategories = await interop.GetShowCategoriesAsync();
+        StateHasChanged();
     }
 
     private async Task FetchCategories()
@@ -203,7 +216,7 @@ else
             { dialog => dialog.Channel, channel },
             { dialog => dialog.Categories, categories }
         };
-        var dialog = await DialogService.ShowAsync<EditChannelDialog>("Channel", parameters,
+        var dialog = await DialogService.ShowAsync<EditChannelDialog>(string.Empty, parameters,
             new DialogOptions
             {
                 FullWidth = true,
@@ -340,10 +353,20 @@ else
         await RefreshChannels();
     }
 
+    private async Task SetShowCategories(bool value)
+    {
+        showCategories = value;
+        if (interop is not null)
+            await interop.SetShowCategoriesAsync(value);
+    }
+
     public async ValueTask DisposeAsync()
     {
         await lifetimeCancellationTokenSource.CancelAsync();
         await loadCancellationTokenSource.CancelAsync();
+
+        if (interop is not null)
+            await interop.DisposeAsync();
 
         lifetimeCancellationTokenSource.Dispose();
         loadCancellationTokenSource.Dispose();
