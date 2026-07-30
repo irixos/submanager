@@ -32,8 +32,8 @@
                                aria-label="Refresh feed" />
             </MudTooltip>
         }
-        <ViewModeToggle IsGrid="@(ViewMode == FeedViewMode.Grid)"
-                        IsGridChanged="SetGridView" />
+        <ViewModeToggle IsGrid="IsGrid"
+                        IsGridChanged="IsGridChanged" />
         <MudTooltip Text="Category display">
             <MudMenu Icon="@Icons.Material.Filled.Label"
                      AriaLabel="Category display"
@@ -151,10 +151,10 @@
     public EventCallback<string> SearchTextChanged { get; set; }
 
     [Parameter]
-    public FeedViewMode ViewMode { get; set; }
+    public bool IsGrid { get; set; }
 
     [Parameter]
-    public EventCallback<FeedViewMode> ViewModeChanged { get; set; }
+    public EventCallback<bool> IsGridChanged { get; set; }
 
     [Parameter]
     public EventCallback ReloadRequested { get; set; }
@@ -216,7 +216,4 @@
 
     private string? GetChannelName(int id) =>
         Channels.FirstOrDefault(channel => channel.Id == id)?.Name;
-
-    private Task SetGridView(bool isGrid) =>
-        ViewModeChanged.InvokeAsync(isGrid ? FeedViewMode.Grid : FeedViewMode.List);
 }

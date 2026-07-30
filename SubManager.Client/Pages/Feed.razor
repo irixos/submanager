@@ -8,7 +8,6 @@
 @inject IJSRuntime JS
 @inject ILogger<Feed> Logger
 @inject ISnackbar Snackbar
-@inject NavigationManager NavigationManager
 
 <PageTitle>Feed</PageTitle>
 
@@ -21,18 +20,18 @@
 
 <FeedToolbar Categories="categories"
              Channels="channels"
-             SelectedCategoryIds="selectedCategoryIds"
-             SelectedCategoryIdsChanged="SetSelectedCategories"
-             SelectedChannelIds="selectedChannelIds"
-             SelectedChannelIdsChanged="SetSelectedChannels"
-             SearchText="@searchText"
-             SearchTextChanged="SetSearchText"
-             ViewMode="viewMode"
-             ViewModeChanged="SetViewMode"
+             @bind-SelectedCategoryIds="selectedCategoryIds"
+             @bind-SelectedCategoryIds:after="ReloadVideos"
+             @bind-SelectedChannelIds="selectedChannelIds"
+             @bind-SelectedChannelIds:after="ReloadVideos"
+             @bind-SearchText="searchText"
+             @bind-SearchText:after="ReloadVideos"
+             @bind-IsGrid="isGrid"
+             @bind-IsGrid:after="PersistViewMode"
              ReloadRequested="RefreshFeed"
              IsRefreshing="isRefreshing"
-             ShowCategories="showCategories"
-             ShowCategoriesChanged="SetShowCategories"
+             @bind-ShowCategories="showCategories"
+             @bind-ShowCategories:after="PersistShowCategories"
              ClearRequested="ClearFilters" />
 
 @if (filterOptionsError is not null)
@@ -73,12 +72,12 @@ else
                     HasMore="hasMoreVideos && loadError is null"
                     IsLoading="isLoading"
                     LoadMore="FetchVideos">
-        <div class="video-feed @(viewMode == FeedViewMode.Grid ? "video-feed-grid" : "video-feed-list")">
+        <div class="video-feed @(isGrid ? "video-feed-grid" : "video-feed-list")">
             @foreach (var video in videos)
             {
                 <VideoFeedItem @key="video.Id"
                                Video="video"
-                               ViewMode="viewMode"
+                               IsGrid="isGrid"
                                Opened="MarkWatched"
                                RestoreRequested="RestoreUnwatched"
                                ShowCategories="showCategories"

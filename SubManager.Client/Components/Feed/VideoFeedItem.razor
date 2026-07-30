@@ -1,12 +1,12 @@
 @using Humanizer
 @using SubManager.ApiClient
 
-<article class="video-feed-item @(ViewMode == FeedViewMode.Grid ? "video-feed-grid-item" : "video-feed-list-item")">
+<article class="video-feed-item @(IsGrid ? "video-feed-grid-item" : "video-feed-list-item")">
     <a class="video-link-overlay"
        href="@VideoUrl"
        target="_blank"
        rel="noopener noreferrer"
-       @onclick="OpenVideo"
+       @onclick="@(() => Opened.InvokeAsync(Video))"
        aria-label="@($"Watch {Video.Title}")"></a>
 
     <div class="video-thumbnail-container">
@@ -22,7 +22,7 @@
                                    Color="Color.Inherit"
                                    Size="Size.Small"
                                    Disabled="IsUpdatingWatchedState"
-                                   OnClick="RestoreVideo"
+                                   OnClick="@(() => RestoreRequested.InvokeAsync(Video))"
                                    aria-label="Mark as unwatched" />
                 </MudTooltip>
             </div>
@@ -30,7 +30,7 @@
     </div>
 
     <div class="video-details">
-        @if (ViewMode == FeedViewMode.Grid)
+        @if (IsGrid)
         {
             <a class="channel-avatar-link"
                href="@ChannelUrl"
@@ -77,7 +77,7 @@
     public VideoResponse Video { get; set; } = null!;
 
     [Parameter]
-    public FeedViewMode ViewMode { get; set; }
+    public bool IsGrid { get; set; }
 
     [Parameter]
     public EventCallback<VideoResponse> Opened { get; set; }
@@ -96,8 +96,4 @@
 
     private string ChannelUrl =>
         $"https://www.youtube.com/channel/{Uri.EscapeDataString(Video.Channel?.YoutubeChannelId ?? string.Empty)}";
-
-    private Task OpenVideo() => Opened.InvokeAsync(Video);
-
-    private Task RestoreVideo() => RestoreRequested.InvokeAsync(Video);
 }

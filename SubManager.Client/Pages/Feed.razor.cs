@@ -21,7 +21,7 @@ public partial class Feed
     private IReadOnlyCollection<int> selectedCategoryIds = [];
     private IReadOnlyCollection<int> selectedChannelIds = [];
     private string searchText = string.Empty;
-    private FeedViewMode viewMode = FeedViewMode.Grid;
+    private bool isGrid = true;
     private FeedInterop? interop;
     private DotNetObjectReference<Feed>? dotNetReference;
     private ElementReference pullRefreshElement;
@@ -44,25 +44,17 @@ public partial class Feed
 
     protected override async Task OnInitializedAsync()
     {
-        var initialChannelId = InitialChannelId ?? GetChannelIdFromUri();
-        if (initialChannelId.HasValue)
-            selectedChannelIds = [initialChannelId.Value];
+        if (InitialChannelId.HasValue)
+            selectedChannelIds = [InitialChannelId.Value];
 
         await LoadFilterOptions();
-        if (initialChannelId.HasValue &&
-            channels.All(channel => channel.Id.GetValueOrDefault() != initialChannelId.Value))
+        if (InitialChannelId.HasValue &&
+            channels.All(channel => channel.Id.GetValueOrDefault() != InitialChannelId.Value))
         {
             selectedChannelIds = [];
         }
 
         await FetchVideos();
-    }
-
-    private int? GetChannelIdFromUri()
-    {
-        var value = System.Web.HttpUtility
-            .ParseQueryString(new Uri(NavigationManager.Uri).Query)["channel"];
-        return int.TryParse(value, out var channelId) ? channelId : null;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -72,8 +64,8 @@ public partial class Feed
 
         interop = new FeedInterop(JS);
         var storedViewMode = await interop.GetViewModeAsync();
-        if (Enum.TryParse<FeedViewMode>(storedViewMode, true, out var value))
-            viewMode = value;
+        if (storedViewMode is not null)
+            isGrid = !string.Equals(storedViewMode, "list", StringComparison.OrdinalIgnoreCase);
 
         showCategories = await interop.GetShowCategoriesAsync();
         StateHasChanged();
@@ -208,36 +200,16 @@ public partial class Feed
             .Replace("/i", "\\/i", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task SetSelectedCategories(IReadOnlyCollection<int> values)
+    private async Task PersistViewMode()
     {
-        selectedCategoryIds = values;
-        await ReloadVideos();
-    }
-
-    private async Task SetSelectedChannels(IReadOnlyCollection<int> values)
-    {
-        selectedChannelIds = values;
-        await ReloadVideos();
-    }
-
-    private async Task SetSearchText(string value)
-    {
-        searchText = value;
-        await ReloadVideos();
-    }
-
-    private async Task SetViewMode(FeedViewMode value)
-    {
-        viewMode = value;
         if (interop is not null)
-            await interop.SetViewModeAsync(value.ToString().ToLowerInvariant());
+            await interop.SetViewModeAsync(isGrid ? "grid" : "list");
     }
 
-    private async Task SetShowCategories(bool value)
+    private async Task PersistShowCategories()
     {
-        showCategories = value;
         if (interop is not null)
-            await interop.SetShowCategoriesAsync(value);
+            await interop.SetShowCategoriesAsync(showCategories);
     }
 
     private async Task ClearFilters()
