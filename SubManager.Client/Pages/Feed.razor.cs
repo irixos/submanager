@@ -13,14 +13,14 @@ public partial class Feed
     private const int PageSize = 20;
     private const int FilterPageSize = 100;
     private const int DurationStatusBatchSize = 100;
-    private const int DurationRevealBatchSize = 3;
+    private const int MaximumDurationPollFailures = 5;
     private static readonly TimeSpan DurationPollInterval = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan MaximumDurationRetryDelay = TimeSpan.FromSeconds(10);
     private readonly List<VideoResponse> videos = [];
     private readonly List<CategoryResponse> categories = [];
     private readonly List<ChannelResponse> channels = [];
-    private readonly Dictionary<int, int> pendingDurations = [];
     private readonly HashSet<int> watchedUpdates = [];
+    private readonly Dictionary<int, DateTimeOffset?> watchedDateOverrides = [];
     private readonly CancellationTokenSource lifetimeCancellationTokenSource = new();
     private CancellationTokenSource loadCancellationTokenSource = new();
     private CancellationTokenSource durationPollingCancellationTokenSource = new();
@@ -39,8 +39,10 @@ public partial class Feed
     private bool isRefreshing;
     private bool showCategories;
     private bool durationMetadataActive;
+    private bool initialized;
     private Exception? loadError;
     private Exception? filterOptionsError;
+    private int? appliedInitialChannelId;
 
     [Parameter, SupplyParameterFromQuery(Name = "channel")]
     public int? InitialChannelId { get; set; }
@@ -52,17 +54,19 @@ public partial class Feed
 
     protected override async Task OnInitializedAsync()
     {
-        if (InitialChannelId.HasValue)
-            selectedChannelIds = [InitialChannelId.Value];
-
         await LoadFilterOptions();
-        if (InitialChannelId.HasValue &&
-            channels.All(channel => channel.Id.GetValueOrDefault() != InitialChannelId.Value))
-        {
-            selectedChannelIds = [];
-        }
-
+        ApplyInitialChannelFilter();
         await FetchVideos();
+        initialized = true;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!initialized || InitialChannelId == appliedInitialChannelId)
+            return;
+
+        ApplyInitialChannelFilter();
+        await ReloadVideos();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -104,6 +108,12 @@ public partial class Feed
         }
     }
 
+    private void ApplyInitialChannelFilter()
+    {
+        appliedInitialChannelId = InitialChannelId;
+        selectedChannelIds = InitialChannelId.HasValue ? [InitialChannelId.Value] : [];
+    }
+
     private async Task<List<CategoryResponse>> LoadAllCategories()
     {
         var result = new List<CategoryResponse>();
@@ -132,7 +142,7 @@ public partial class Feed
         while (true)
         {
             var response = await ChannelsClient.GetChannelsAsync(
-                page, FilterPageSize, "Name, Id", "IsActive=true", lifetimeCancellationTokenSource.Token);
+                page, FilterPageSize, "Name, Id", null, lifetimeCancellationTokenSource.Token);
             var items = response.Data?.ToList() ?? [];
             result.AddRange(items);
 
@@ -162,6 +172,12 @@ public partial class Feed
                 return;
 
             var newVideos = videoPage.Data?.ToList() ?? [];
+            foreach (var video in newVideos)
+            {
+                if (video.Id is int id && watchedDateOverrides.TryGetValue(id, out var watchedDate))
+                    SetWatchedDate(video, watchedDate);
+            }
+
             videos.AddRange(newVideos);
             currentPage++;
             EnsureDurationPolling();
@@ -267,6 +283,7 @@ public partial class Feed
                     .Select(video => video.Id!.Value)
                     .ToArray();
                 var hasPendingMetadata = false;
+                var durationsUpdated = false;
 
                 foreach (var ids in missingIds.Chunk(DurationStatusBatchSize))
                 {
@@ -275,29 +292,29 @@ public partial class Feed
 
                     foreach (var duration in status.Videos ?? [])
                     {
-                        if (duration is { Id: not null, DurationSeconds: not null } &&
-                            videos.Any(video =>
-                                video.Id == duration.Id &&
-                                video.DurationSeconds is null))
-                        {
-                            pendingDurations[duration.Id.Value] = duration.DurationSeconds.Value;
-                        }
+                        var video = videos.FirstOrDefault(video =>
+                            video.Id == duration.Id &&
+                            video.DurationSeconds is null);
+                        if (video is null || !duration.DurationSeconds.HasValue)
+                            continue;
+
+                        video.DurationSeconds = duration.DurationSeconds;
+                        durationsUpdated = true;
                     }
                 }
 
                 failureCount = 0;
-                var revealed = RevealPendingDurations();
                 var stillMissing = videos.Any(video =>
                     video.DurationSeconds is null && video.Id.HasValue);
 
-                if (pendingDurations.Count == 0 && (!stillMissing || !hasPendingMetadata))
+                if (!stillMissing || !hasPendingMetadata)
                 {
                     durationMetadataActive = false;
                     StateHasChanged();
                     return;
                 }
 
-                if (revealed)
+                if (durationsUpdated)
                     StateHasChanged();
 
                 await Task.Delay(DurationPollInterval, ct);
@@ -310,6 +327,13 @@ public partial class Feed
             {
                 Logger.LogWarning(exception, "Unable to poll video duration metadata");
                 failureCount++;
+                if (failureCount >= MaximumDurationPollFailures)
+                {
+                    durationMetadataActive = false;
+                    StateHasChanged();
+                    return;
+                }
+
                 var retryDelay = TimeSpan.FromMilliseconds(Math.Min(
                     MaximumDurationRetryDelay.TotalMilliseconds,
                     DurationPollInterval.TotalMilliseconds * Math.Pow(2, failureCount)));
@@ -326,27 +350,6 @@ public partial class Feed
         }
     }
 
-    private bool RevealPendingDurations()
-    {
-        var videosToReveal = videos
-            .Where(video =>
-                video.Id.HasValue &&
-                pendingDurations.ContainsKey(video.Id.Value))
-            .OrderByDescending(video => video.PublishedDate)
-            .ThenByDescending(video => video.Id)
-            .Take(DurationRevealBatchSize)
-            .ToList();
-
-        foreach (var video in videosToReveal)
-        {
-            var id = video.Id!.Value;
-            video.DurationSeconds = pendingDurations[id];
-            pendingDurations.Remove(id);
-        }
-
-        return videosToReveal.Count > 0;
-    }
-
     private async Task ResetDurationPolling()
     {
         await durationPollingCancellationTokenSource.CancelAsync();
@@ -354,41 +357,29 @@ public partial class Feed
         durationPollingCancellationTokenSource.Dispose();
         durationPollingCancellationTokenSource = new CancellationTokenSource();
         durationPollingTask = Task.CompletedTask;
-        pendingDurations.Clear();
         durationMetadataActive = false;
     }
 
-    private async Task MarkWatched(VideoResponse video)
-    {
-        if (video.IsWatched is true)
-            return;
+    private Task MarkWatched(VideoResponse video) =>
+        video.IsWatched is true
+            ? Task.CompletedTask
+            : UpdateWatchedDate(video, DateTimeOffset.UtcNow);
 
-        var watchedDate = DateTimeOffset.UtcNow;
-        var previousWatchedDate = video.WatchedDate;
-        video.IsWatched = true;
-        video.WatchedDate = watchedDate;
-        await UpdateWatchedDate(video, watchedDate, previousWatchedDate);
-    }
-
-    private async Task RestoreUnwatched(VideoResponse video)
-    {
-        if (video.IsWatched is not true)
-            return;
-
-        var previousWatchedDate = video.WatchedDate;
-        video.IsWatched = false;
-        video.WatchedDate = null;
-        await UpdateWatchedDate(video, null, previousWatchedDate);
-    }
+    private Task RestoreUnwatched(VideoResponse video) =>
+        video.IsWatched is not true
+            ? Task.CompletedTask
+            : UpdateWatchedDate(video, null);
 
     private async Task UpdateWatchedDate(
         VideoResponse video,
-        DateTimeOffset? watchedDate,
-        DateTimeOffset? previousWatchedDate)
+        DateTimeOffset? watchedDate)
     {
-        var id = video.Id.GetValueOrDefault();
-        if (!watchedUpdates.Add(id))
+        if (video.Id is not int id || !watchedUpdates.Add(id))
             return;
+
+        var previousWatchedDate = video.WatchedDate;
+        watchedDateOverrides[id] = watchedDate;
+        SetWatchedDate(video, watchedDate);
 
         try
         {
@@ -396,19 +387,33 @@ public partial class Feed
                 id,
                 new UpdateVideoWatchedDateRequest { WatchedDate = watchedDate },
                 lifetimeCancellationTokenSource.Token);
+            ApplyWatchedDateOverride(id);
         }
         catch (Exception exception) when (
             exception is not OperationCanceledException || !lifetimeCancellationTokenSource.IsCancellationRequested)
         {
-            Logger.LogError(exception, "Unable to update watched state for video {VideoId}", id);
-            video.IsWatched = previousWatchedDate.HasValue;
-            video.WatchedDate = previousWatchedDate;
+            Logger.LogError(exception, "Unable to update watched state for video {VideoId}", video.Id);
+            watchedDateOverrides[id] = previousWatchedDate;
+            ApplyWatchedDateOverride(id);
             Snackbar.Add("Unable to update the watched status. The previous state was restored.", Severity.Error);
         }
         finally
         {
             watchedUpdates.Remove(id);
         }
+    }
+
+    private void ApplyWatchedDateOverride(int id)
+    {
+        var video = videos.FirstOrDefault(video => video.Id == id);
+        if (video is not null)
+            SetWatchedDate(video, watchedDateOverrides[id]);
+    }
+
+    private static void SetWatchedDate(VideoResponse video, DateTimeOffset? watchedDate)
+    {
+        video.IsWatched = watchedDate.HasValue;
+        video.WatchedDate = watchedDate;
     }
 
     private async Task RefreshFeed()

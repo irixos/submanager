@@ -15,21 +15,15 @@
     grid-template-columns: clamp(10rem, 32vw, 20rem) minmax(0, 1fr);
 }
 
-.video-link-overlay {
-    inset: 0;
-    position: absolute;
-    z-index: 1;
+.video-thumbnail-link {
+    display: block;
+    height: 100%;
 }
 
-.video-link-overlay:focus-visible {
+.video-thumbnail-link:focus-visible {
     border-radius: 0.75rem;
     outline: 2px solid var(--mud-palette-primary);
     outline-offset: 2px;
-}
-
-.video-link-overlay:hover ~ .video-details .video-title,
-.video-link-overlay:focus-visible ~ .video-details .video-title {
-    text-decoration: underline;
 }
 
 .video-thumbnail-container {
@@ -70,33 +64,21 @@
 }
 
 .video-duration-loading {
+    bottom: 0.35rem;
     height: 1.25rem;
     overflow: hidden;
+    position: absolute;
+    right: 0.35rem;
     width: 2.75rem;
 }
 
-.video-duration-loading::after {
-    animation: duration-wipe 900ms ease-in-out infinite;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgb(255 255 255 / 28%),
-        transparent);
-    content: "";
-    inset: 0;
-    position: absolute;
-    transform: translateX(-100%);
-}
-
-@keyframes duration-wipe {
-    to {
-        transform: translateX(100%);
-    }
+.video-duration-loading ::deep .mud-skeleton {
+    height: 100%;
+    width: 100%;
 }
 
 .restore-watched {
     opacity: 0;
-    pointer-events: auto;
     position: absolute;
     right: 0.5rem;
     top: 0.5rem;
@@ -119,18 +101,10 @@
     gap: 0.75rem;
     min-width: 0;
     padding-top: 0.75rem;
-    pointer-events: none;
-    position: relative;
-    z-index: 2;
 }
 
 .video-feed-list-item .video-details {
     padding-top: 0.25rem;
-}
-
-.channel-avatar-link,
-.channel-name-link {
-    pointer-events: auto;
 }
 
 .channel-avatar-link {
@@ -156,13 +130,20 @@
 }
 
 .video-title {
+    color: inherit;
     display: -webkit-box;
     font-size: var(--mud-typography-subtitle2-size);
     font-weight: var(--mud-typography-subtitle2-weight);
     line-height: var(--mud-typography-subtitle2-lineheight);
     overflow: hidden;
+    text-decoration: none;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+}
+
+.video-title:hover,
+.video-title:focus-visible {
+    text-decoration: underline;
 }
 
 .channel-name-link {
@@ -170,10 +151,8 @@
     display: block;
     font-size: var(--mud-typography-body2-size);
     margin-top: 0.15rem;
-    position: relative;
     text-decoration: none;
     width: fit-content;
-    z-index: 3;
 }
 
 .video-metadata {
@@ -202,12 +181,5 @@
 @media (hover: none) {
     .restore-watched {
         opacity: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .video-duration-loading::after {
-        animation: none;
-        transform: none;
     }
 }

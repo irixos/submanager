@@ -69,6 +69,7 @@ else if (hasLoaded && videos.Count == 0)
 else
 {
     <InfiniteScroll ItemCount="videos.Count"
+                    LayoutKey="@(isGrid ? "grid" : "list")"
                     HasMore="hasMoreVideos && loadError is null"
                     IsLoading="isLoading"
                     LoadMore="FetchVideos">

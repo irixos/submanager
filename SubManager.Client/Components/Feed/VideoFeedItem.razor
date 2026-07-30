@@ -2,26 +2,28 @@
 @using SubManager.ApiClient
 
 <article class="video-feed-item @(IsGrid ? "video-feed-grid-item" : "video-feed-list-item")">
-    <a class="video-link-overlay"
-       href="@VideoUrl"
-       target="_blank"
-       rel="noopener noreferrer"
-       @onclick="@(() => Opened.InvokeAsync(Video))"
-       aria-label="@($"Watch {Video.Title}")"></a>
-
     <div class="video-thumbnail-container">
-        <img src="@Video.ThumbnailUrl"
-             alt=""
-             referrerpolicy="no-referrer"
-             class="video-thumbnail @(Video.IsWatched is true ? "video-thumbnail-watched" : null)" />
-        @if (Video.DurationSeconds.HasValue)
-        {
-            <span class="video-duration">@FormatDuration(Video.DurationSeconds.Value)</span>
-        }
-        else if (IsDurationPending)
-        {
-            <span class="video-duration video-duration-loading" aria-hidden="true"></span>
-        }
+        <a class="video-thumbnail-link"
+           href="@VideoUrl"
+           target="_blank"
+           rel="noopener noreferrer"
+           @onclick="@(() => Opened.InvokeAsync(Video))"
+           aria-label="@($"Watch {Video.Title}")">
+            <img src="@Video.ThumbnailUrl"
+                 alt=""
+                 referrerpolicy="no-referrer"
+                 class="video-thumbnail @(Video.IsWatched is true ? "video-thumbnail-watched" : null)" />
+            @if (Video.DurationSeconds.HasValue)
+            {
+                <span class="video-duration">@FormatDuration(Video.DurationSeconds.Value)</span>
+            }
+            else if (IsDurationPending)
+            {
+                <span class="video-duration-loading" aria-hidden="true">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" />
+                </span>
+            }
+        </a>
         @if (Video.IsWatched is true)
         {
             <div class="restore-watched">
@@ -55,7 +57,13 @@
         }
 
         <div class="video-text">
-            <div class="video-title">@Video.Title</div>
+            <a class="video-title"
+               href="@VideoUrl"
+               target="_blank"
+               rel="noopener noreferrer"
+               @onclick="@(() => Opened.InvokeAsync(Video))">
+                @Video.Title
+            </a>
             <a class="channel-name-link"
                href="@ChannelUrl"
                target="_blank"
