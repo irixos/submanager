@@ -12,7 +12,8 @@ public sealed class VideoRefreshService(
     ApplicationDbContext db,
     IMetadataTaskQueue metadataTaskQueue,
     IYoutubeVideoIngestService youtubeVideoIngestService,
-    IYoutubeMetadataProvider youtubeMetadataProvider) : IVideoRefreshService
+    IYoutubeMetadataProvider youtubeMetadataProvider,
+    ILogger<VideoRefreshService> logger) : IVideoRefreshService
 {
     private const int DefaultPageSize = 25;
     private const int MetadataUpdateBatchSize = 3;
@@ -41,27 +42,24 @@ public sealed class VideoRefreshService(
             if (recentVideos.Count == 0)
                 return new RefreshResult();
 
-            // get video ids of new videos in recentVideos
-            var newVideoIds = await GetNewVideoIdsAsync(recentVideos
-                .OrderByDescending(v => v.PublishedDate)
-                .Select(v => v.YoutubeVideoId).ToList(), ct);
-
             // upsert new videos
             await UpsertRangeAsync(recentVideos, ct);
 
-            // queue background task to refresh metadata for new videos
-            await metadataTaskQueue.QueueBackgroundWorkItemAsync(async (sp, cancellationToken) =>
-            {
-                var videoRefreshService = sp.GetRequiredService<IVideoRefreshService>();
-                
-                await videoRefreshService.RefreshMetadataForVideosAsync(newVideoIds, cancellationToken);
-            });
-
-            // get newly refreshed videos
             var youtubeVideoIds = recentVideos
-                .Select(v => v.YoutubeVideoId)
+                .Select(video => video.YoutubeVideoId)
                 .Distinct()
                 .ToList();
+            var pendingVideoIds = await GetPendingVideoIdsAsync(youtubeVideoIds, ct);
+
+            if (pendingVideoIds.Count > 0)
+            {
+                await metadataTaskQueue.QueueBackgroundWorkItemAsync(async (sp, cancellationToken) =>
+                {
+                    var videoRefreshService = sp.GetRequiredService<IVideoRefreshService>();
+
+                    await videoRefreshService.RefreshMetadataForVideosAsync(pendingVideoIds, cancellationToken);
+                });
+            }
 
             // return new feed items
             var response = new RefreshResult
@@ -83,16 +81,28 @@ public sealed class VideoRefreshService(
     }
 
     public async Task RefreshMetadataForVideosAsync(
-        IReadOnlyCollection<string> newVideoIds, 
+        IReadOnlyCollection<string> videoIds,
         CancellationToken ct)
     {
+        var pendingVideoIds = await GetPendingVideoIdsAsync(videoIds, ct);
         var pendingVideoInfos = new Dictionary<string, YoutubeVideoInfo>();
 
-        foreach (var videoId in newVideoIds)
+        foreach (var videoId in pendingVideoIds)
         {
-            var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, ct);
-
-            pendingVideoInfos[videoId] = videoInfo;
+            try
+            {
+                var videoInfo = await youtubeMetadataProvider.GetVideoInfo(videoId, ct);
+                pendingVideoInfos[videoId] = videoInfo;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Unable to refresh metadata for video {YoutubeVideoId}", videoId);
+                continue;
+            }
 
             if (pendingVideoInfos.Count >= MetadataUpdateBatchSize)
             {
@@ -107,18 +117,18 @@ public sealed class VideoRefreshService(
         await UpdateMetadataAsync(pendingVideoInfos, ct);
     }
 
-    private async Task<IReadOnlyCollection<string>> GetNewVideoIdsAsync(IReadOnlyCollection<string> youtubeVideoIds, CancellationToken ct)
+    private async Task<IReadOnlyList<string>> GetPendingVideoIdsAsync(
+        IReadOnlyCollection<string> youtubeVideoIds,
+        CancellationToken ct)
     {
-        var existingVideoIds = await db.Videos
-            .Where(v => youtubeVideoIds.Contains(v.YoutubeVideoId))
-            .Select(v => v.YoutubeVideoId)
+        return await db.Videos
+            .Where(video =>
+                youtubeVideoIds.Contains(video.YoutubeVideoId) &&
+                video.DurationSeconds == null)
+            .OrderByDescending(video => video.PublishedDate)
+            .ThenByDescending(video => video.Id)
+            .Select(video => video.YoutubeVideoId)
             .ToListAsync(ct);
-        
-        var existingVideoIdsSet = existingVideoIds.ToHashSet();
-        
-        return youtubeVideoIds
-            .Where(id => !existingVideoIdsSet.Contains(id))
-            .ToList();       
     }
     
     private async Task UpsertRangeAsync(IReadOnlyCollection<Video> videos, CancellationToken ct)
@@ -133,7 +143,7 @@ public sealed class VideoRefreshService(
             await db.Videos
                 .UpsertRange(batch)
                 .On(v => v.YoutubeVideoId)
-                .Exclude(v => v.AddedDate)
+                .Exclude(v => new { v.AddedDate, v.WatchedDate, v.DurationSeconds })
                 .RunAsync(ct);
         }
     }

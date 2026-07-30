@@ -4,3 +4,8 @@ GET {{SubManager_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+GET {{SubManager_HostAddress}}/videos/duration-status?ids=1&ids=2
+Accept: application/json
+
+###

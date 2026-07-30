@@ -22,6 +22,7 @@ public sealed class MetadataHostedService(
             
             try { await workItem(scope.ServiceProvider, ct); }
             catch (Exception ex) { logger.LogError(ex, $"Error executing {nameof(workItem)}."); }
+            finally { taskQueue.MarkCompleted(); }
         }
     }
     

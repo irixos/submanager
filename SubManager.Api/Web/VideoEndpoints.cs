@@ -1,5 +1,6 @@
 using Gridify;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using SubManager.Api.Application.Features.Videos.Interfaces;
 using SubManager.Api.Application.Features.Videos.Models;
 
@@ -36,6 +37,29 @@ public static class VideoEndpoints
             .WithName("GetVideoById")
             .WithSummary("Get video by ID")
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/duration-status",
+            async Task<Results<Ok<VideoDurationStatusResponse>, BadRequest<ProblemDetails>>>(
+                [FromQuery] int[]? ids,
+                IVideoService videoService,
+                CancellationToken ct) =>
+            {
+                if (!TryNormalizeDurationStatusIds(ids, out var videoIds))
+                {
+                    return TypedResults.BadRequest(new ProblemDetails
+                    {
+                        Title = "Invalid video IDs",
+                        Detail = "Supply no more than 100 positive video IDs.",
+                        Status = StatusCodes.Status400BadRequest
+                    });
+                }
+
+                return TypedResults.Ok(await videoService.GetDurationStatusAsync(videoIds, ct));
+            })
+            .WithName("GetVideoDurationStatus")
+            .WithSummary("Get video duration metadata status")
+            .WithDescription("Returns available durations for requested videos and whether duration metadata processing is still active.")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
         
         group.MapPost("/refresh",
             async Task<Results<Ok<IReadOnlyList<VideoResponse>>, Conflict>>(
@@ -72,5 +96,11 @@ public static class VideoEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return group;
-    } 
+    }
+
+    internal static bool TryNormalizeDurationStatusIds(int[]? ids, out int[] videoIds)
+    {
+        videoIds = ids?.Distinct().ToArray() ?? [];
+        return videoIds.Length <= 100 && videoIds.All(id => id > 0);
+    }
 }
