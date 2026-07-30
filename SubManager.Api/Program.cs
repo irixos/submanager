@@ -96,3 +96,5 @@ app.MapGroup("/videos")
     .MapVideosApi();
 
 app.Run();
+
+public partial class Program;

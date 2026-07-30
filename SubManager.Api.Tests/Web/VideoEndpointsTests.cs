@@ -42,4 +42,15 @@ public sealed class VideoEndpointsTests
 
         Assert.False(isValid);
     }
+
+    [Fact]
+    public void TryNormalizeDurationStatusIds_ExactlyOneHundredDistinctIds_IsValid()
+    {
+        var isValid = VideoEndpoints.TryNormalizeDurationStatusIds(
+            Enumerable.Range(1, 100).ToArray(),
+            out var ids);
+
+        Assert.True(isValid);
+        Assert.Equal(100, ids.Length);
+    }
 }

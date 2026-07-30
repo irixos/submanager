@@ -84,13 +84,16 @@ public sealed class VideoRefreshServiceTests
         incoming.AddedDate = default;
         incoming.WatchedDate = null;
         var ingest = new StubVideoIngestService([incoming]);
+        var queue = new MetadataTaskQueue();
         var service = CreateService(
             database.Context,
             new RecordingMetadataProvider(),
-            ingest);
+            ingest,
+            queue);
 
         await service.RefreshAllAsync(CancellationToken.None);
 
+        Assert.False(queue.HasPendingWork);
         database.Context.ChangeTracker.Clear();
         var updated = await database.Context.Videos.SingleAsync();
         Assert.Equal("Updated title", updated.Title);
@@ -99,14 +102,100 @@ public sealed class VideoRefreshServiceTests
         Assert.Equal(125, updated.DurationSeconds);
     }
 
+    [Fact]
+    public async Task RefreshAllAsync_NewVideoWithoutDuration_QueuesMetadata()
+    {
+        using var database = new SqliteTestDatabase();
+        var channel = CreateChannel();
+        database.Context.Add(channel);
+        await database.Context.SaveChangesAsync();
+        var incoming = CreateVideo(0, channel, DateTimeOffset.UtcNow);
+        incoming.Channel = null!;
+        incoming.ChannelId = channel.Id;
+        var queue = new MetadataTaskQueue();
+        var service = CreateService(
+            database.Context,
+            new RecordingMetadataProvider(),
+            new StubVideoIngestService([incoming]),
+            queue);
+
+        var result = await service.RefreshAllAsync(CancellationToken.None);
+
+        Assert.True(queue.HasPendingWork);
+        Assert.Equal(incoming.YoutubeVideoId, Assert.Single(result.Response).YoutubeVideoId);
+    }
+
+    [Fact]
+    public async Task RefreshAllAsync_ActiveChannelsAndNoVideos_ReturnsEmptyWithoutQueueing()
+    {
+        using var database = new SqliteTestDatabase();
+        var active = CreateChannel();
+        var inactive = CreateChannel();
+        inactive.IsActive = false;
+        database.Context.AddRange(active, inactive);
+        await database.Context.SaveChangesAsync();
+        var ingest = new RecordingVideoIngestService([]);
+        var queue = new MetadataTaskQueue();
+        var service = CreateService(
+            database.Context,
+            new RecordingMetadataProvider(),
+            ingest,
+            queue);
+
+        var result = await service.RefreshAllAsync(CancellationToken.None);
+
+        Assert.False(result.IsAlreadyRunning);
+        Assert.Empty(result.Response);
+        Assert.Equal(active.Id, Assert.Single(ingest.ChannelIds));
+        Assert.False(queue.HasPendingWork);
+    }
+
+    [Fact]
+    public async Task RefreshAllAsync_ConcurrentCall_ReturnsAlreadyRunning()
+    {
+        using var database = new SqliteTestDatabase();
+        database.Context.Add(CreateChannel());
+        await database.Context.SaveChangesAsync();
+        var ingest = new BlockingVideoIngestService();
+        var service = CreateService(
+            database.Context,
+            new RecordingMetadataProvider(),
+            ingest);
+
+        var firstRefresh = service.RefreshAllAsync(CancellationToken.None);
+        await ingest.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var concurrent = await service.RefreshAllAsync(CancellationToken.None);
+        ingest.Release.TrySetResult();
+        var first = await firstRefresh;
+
+        Assert.True(concurrent.IsAlreadyRunning);
+        Assert.False(first.IsAlreadyRunning);
+    }
+
+    [Fact]
+    public async Task RefreshMetadataForVideosAsync_CancellationDuringProviderCall_Propagates()
+    {
+        using var database = new SqliteTestDatabase();
+        var video = CreateVideo(1, CreateChannel(), DateTimeOffset.UtcNow);
+        database.Context.Add(video);
+        await database.Context.SaveChangesAsync();
+        using var cts = new CancellationTokenSource();
+        var service = CreateService(database.Context, new CancelingMetadataProvider(cts));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.RefreshMetadataForVideosAsync([video.YoutubeVideoId], cts.Token));
+    }
+
     private static VideoRefreshService CreateService(
         SubManager.Api.Infrastructure.ApplicationDbContext db,
         IYoutubeMetadataProvider metadataProvider,
-        IYoutubeVideoIngestService? ingestService = null)
+        IYoutubeVideoIngestService? ingestService = null,
+        IMetadataTaskQueue? metadataTaskQueue = null)
     {
         return new VideoRefreshService(
             db,
-            new MetadataTaskQueue(),
+            metadataTaskQueue ?? new MetadataTaskQueue(),
             ingestService ?? new StubVideoIngestService([]),
             metadataProvider,
             NullLogger<VideoRefreshService>.Instance);
@@ -170,6 +259,51 @@ public sealed class VideoRefreshServiceTests
         public Task<IReadOnlyCollection<Video>> GetRecentVideosAsync(
             IReadOnlyCollection<Channel> channels,
             CancellationToken ct) => Task.FromResult(videos);
+    }
+
+    private sealed class RecordingVideoIngestService(IReadOnlyCollection<Video> videos)
+        : IYoutubeVideoIngestService
+    {
+        public List<int> ChannelIds { get; } = [];
+
+        public Task<IReadOnlyCollection<Video>> GetRecentVideosAsync(
+            IReadOnlyCollection<Channel> channels,
+            CancellationToken ct)
+        {
+            ChannelIds.AddRange(channels.Select(channel => channel.Id));
+            return Task.FromResult(videos);
+        }
+    }
+
+    private sealed class BlockingVideoIngestService : IYoutubeVideoIngestService
+    {
+        public TaskCompletionSource Entered { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyCollection<Video>> GetRecentVideosAsync(
+            IReadOnlyCollection<Channel> channels,
+            CancellationToken ct)
+        {
+            Entered.TrySetResult();
+            await Release.Task.WaitAsync(ct);
+            return [];
+        }
+    }
+
+    private sealed class CancelingMetadataProvider(CancellationTokenSource cts)
+        : IYoutubeMetadataProvider
+    {
+        public Task<YoutubeChannelInfo> GetChannelInfo(
+            YoutubeChannelRef youtubeChannelRef,
+            CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<YoutubeVideoInfo> GetVideoInfo(string videoId, CancellationToken ct)
+        {
+            cts.Cancel();
+            return Task.FromCanceled<YoutubeVideoInfo>(cts.Token);
+        }
     }
 
     private sealed class SaveChangesCounter : SaveChangesInterceptor

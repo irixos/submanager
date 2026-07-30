@@ -18,7 +18,7 @@ internal sealed class SqliteTestDatabase : IDisposable
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(connection)
-            .ReplaceService<IModelCustomizer, SqliteModelCustomizer>()
+            .ReplaceService<IModelCustomizer, SqliteTestModelCustomizer>()
             .AddInterceptors(interceptors)
             .Options;
 
@@ -33,17 +33,26 @@ internal sealed class SqliteTestDatabase : IDisposable
         Context.Dispose();
         connection.Dispose();
     }
+}
 
-    private sealed class SqliteModelCustomizer(ModelCustomizerDependencies dependencies)
-        : ModelCustomizer(dependencies)
+internal sealed class SqliteTestModelCustomizer(ModelCustomizerDependencies dependencies)
+    : ModelCustomizer(dependencies)
+{
+    public override void Customize(ModelBuilder modelBuilder, DbContext context)
     {
-        public override void Customize(ModelBuilder modelBuilder, DbContext context)
-        {
-            base.Customize(modelBuilder, context);
-            ConfigureDateTimeOffset(modelBuilder.Entity<Video>().Property(video => video.PublishedDate));
-        }
-
-        private static void ConfigureDateTimeOffset(
-            PropertyBuilder<DateTimeOffset> property) => property.HasConversion<long>();
+        base.Customize(modelBuilder, context);
+        ConfigureGeneratedDate(modelBuilder.Entity<Channel>().Property(channel => channel.AddedDate));
+        ConfigureGeneratedDate(modelBuilder.Entity<Video>().Property(video => video.AddedDate));
+        ConfigureGeneratedDate(modelBuilder.Entity<Video>().Property(video => video.MetadataLastRefreshedAt));
+        ConfigureDateTimeOffset(modelBuilder.Entity<Video>().Property(video => video.PublishedDate));
     }
+
+    private static void ConfigureGeneratedDate(
+        PropertyBuilder<DateTimeOffset> property) =>
+        property
+            .HasDefaultValueSql(null)
+            .HasDefaultValue(DateTimeOffset.UnixEpoch);
+
+    private static void ConfigureDateTimeOffset(
+        PropertyBuilder<DateTimeOffset> property) => property.HasConversion<long>();
 }
