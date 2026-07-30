@@ -81,6 +81,7 @@ else
                                Opened="MarkWatched"
                                RestoreRequested="RestoreUnwatched"
                                ShowCategories="showCategories"
+                               IsDurationPending="durationMetadataActive && video.DurationSeconds is null"
                                IsUpdatingWatchedState="watchedUpdates.Contains(video.Id.GetValueOrDefault())" />
             }
         </div>

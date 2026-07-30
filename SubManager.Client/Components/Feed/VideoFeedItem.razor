@@ -14,6 +14,14 @@
              alt=""
              referrerpolicy="no-referrer"
              class="video-thumbnail @(Video.IsWatched is true ? "video-thumbnail-watched" : null)" />
+        @if (Video.DurationSeconds.HasValue)
+        {
+            <span class="video-duration">@FormatDuration(Video.DurationSeconds.Value)</span>
+        }
+        else if (IsDurationPending)
+        {
+            <span class="video-duration video-duration-loading" aria-hidden="true"></span>
+        }
         @if (Video.IsWatched is true)
         {
             <div class="restore-watched">
@@ -89,6 +97,9 @@
     public bool IsUpdatingWatchedState { get; set; }
 
     [Parameter]
+    public bool IsDurationPending { get; set; }
+
+    [Parameter]
     public bool ShowCategories { get; set; }
 
     private string VideoUrl =>
@@ -96,4 +107,12 @@
 
     private string ChannelUrl =>
         $"https://www.youtube.com/channel/{Uri.EscapeDataString(Video.Channel?.YoutubeChannelId ?? string.Empty)}";
+
+    private static string FormatDuration(int totalSeconds)
+    {
+        var duration = TimeSpan.FromSeconds(Math.Max(0, totalSeconds));
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}:{duration.Minutes:00}:{duration.Seconds:00}"
+            : $"{duration.Minutes}:{duration.Seconds:00}";
+    }
 }

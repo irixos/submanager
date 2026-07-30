@@ -12,12 +12,19 @@ public partial class Feed
 {
     private const int PageSize = 20;
     private const int FilterPageSize = 100;
+    private const int DurationStatusBatchSize = 100;
+    private const int DurationRevealBatchSize = 3;
+    private static readonly TimeSpan DurationPollInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan MaximumDurationRetryDelay = TimeSpan.FromSeconds(10);
     private readonly List<VideoResponse> videos = [];
     private readonly List<CategoryResponse> categories = [];
     private readonly List<ChannelResponse> channels = [];
+    private readonly Dictionary<int, int> pendingDurations = [];
     private readonly HashSet<int> watchedUpdates = [];
     private readonly CancellationTokenSource lifetimeCancellationTokenSource = new();
     private CancellationTokenSource loadCancellationTokenSource = new();
+    private CancellationTokenSource durationPollingCancellationTokenSource = new();
+    private Task durationPollingTask = Task.CompletedTask;
     private IReadOnlyCollection<int> selectedCategoryIds = [];
     private IReadOnlyCollection<int> selectedChannelIds = [];
     private string searchText = string.Empty;
@@ -31,6 +38,7 @@ public partial class Feed
     private bool hasMoreVideos = true;
     private bool isRefreshing;
     private bool showCategories;
+    private bool durationMetadataActive;
     private Exception? loadError;
     private Exception? filterOptionsError;
 
@@ -156,6 +164,7 @@ public partial class Feed
             var newVideos = videoPage.Data?.ToList() ?? [];
             videos.AddRange(newVideos);
             currentPage++;
+            EnsureDurationPolling();
 
             hasMoreVideos = newVideos.Count > 0 &&
                 (videoPage.Count.HasValue
@@ -222,6 +231,7 @@ public partial class Feed
 
     private async Task ReloadVideos()
     {
+        await ResetDurationPolling();
         await loadCancellationTokenSource.CancelAsync();
         loadCancellationTokenSource.Dispose();
         loadCancellationTokenSource = new CancellationTokenSource();
@@ -232,6 +242,120 @@ public partial class Feed
         hasLoaded = false;
         isLoading = false;
         await FetchVideos();
+    }
+
+    private void EnsureDurationPolling()
+    {
+        if (!durationPollingTask.IsCompleted ||
+            videos.All(video => video.DurationSeconds.HasValue || !video.Id.HasValue))
+            return;
+
+        durationMetadataActive = true;
+        durationPollingTask = PollDurations(durationPollingCancellationTokenSource.Token);
+    }
+
+    private async Task PollDurations(CancellationToken ct)
+    {
+        var failureCount = 0;
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var missingIds = videos
+                    .Where(video => video.DurationSeconds is null && video.Id.HasValue)
+                    .Select(video => video.Id!.Value)
+                    .ToArray();
+                var hasPendingMetadata = false;
+
+                foreach (var ids in missingIds.Chunk(DurationStatusBatchSize))
+                {
+                    var status = await VideosClient.GetVideoDurationStatusAsync(ids, ct);
+                    hasPendingMetadata |= status.HasPendingMetadata is true;
+
+                    foreach (var duration in status.Videos ?? [])
+                    {
+                        if (duration is { Id: not null, DurationSeconds: not null } &&
+                            videos.Any(video =>
+                                video.Id == duration.Id &&
+                                video.DurationSeconds is null))
+                        {
+                            pendingDurations[duration.Id.Value] = duration.DurationSeconds.Value;
+                        }
+                    }
+                }
+
+                failureCount = 0;
+                var revealed = RevealPendingDurations();
+                var stillMissing = videos.Any(video =>
+                    video.DurationSeconds is null && video.Id.HasValue);
+
+                if (pendingDurations.Count == 0 && (!stillMissing || !hasPendingMetadata))
+                {
+                    durationMetadataActive = false;
+                    StateHasChanged();
+                    return;
+                }
+
+                if (revealed)
+                    StateHasChanged();
+
+                await Task.Delay(DurationPollInterval, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception exception)
+            {
+                Logger.LogWarning(exception, "Unable to poll video duration metadata");
+                failureCount++;
+                var retryDelay = TimeSpan.FromMilliseconds(Math.Min(
+                    MaximumDurationRetryDelay.TotalMilliseconds,
+                    DurationPollInterval.TotalMilliseconds * Math.Pow(2, failureCount)));
+
+                try
+                {
+                    await Task.Delay(retryDelay, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    private bool RevealPendingDurations()
+    {
+        var videosToReveal = videos
+            .Where(video =>
+                video.Id.HasValue &&
+                pendingDurations.ContainsKey(video.Id.Value))
+            .OrderByDescending(video => video.PublishedDate)
+            .ThenByDescending(video => video.Id)
+            .Take(DurationRevealBatchSize)
+            .ToList();
+
+        foreach (var video in videosToReveal)
+        {
+            var id = video.Id!.Value;
+            video.DurationSeconds = pendingDurations[id];
+            pendingDurations.Remove(id);
+        }
+
+        return videosToReveal.Count > 0;
+    }
+
+    private async Task ResetDurationPolling()
+    {
+        await durationPollingCancellationTokenSource.CancelAsync();
+        await durationPollingTask;
+        durationPollingCancellationTokenSource.Dispose();
+        durationPollingCancellationTokenSource = new CancellationTokenSource();
+        durationPollingTask = Task.CompletedTask;
+        pendingDurations.Clear();
+        durationMetadataActive = false;
     }
 
     private async Task MarkWatched(VideoResponse video)
@@ -334,6 +458,8 @@ public partial class Feed
     {
         await lifetimeCancellationTokenSource.CancelAsync();
         await loadCancellationTokenSource.CancelAsync();
+        await durationPollingCancellationTokenSource.CancelAsync();
+        await durationPollingTask;
 
         if (interop is not null)
             await interop.DisposeAsync();
@@ -341,5 +467,6 @@ public partial class Feed
         dotNetReference?.Dispose();
         lifetimeCancellationTokenSource.Dispose();
         loadCancellationTokenSource.Dispose();
+        durationPollingCancellationTokenSource.Dispose();
     }
 }
