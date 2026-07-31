@@ -141,6 +141,8 @@
     -webkit-line-clamp: 2;
 }
 
+.video-feed-item:has(.video-thumbnail-link:hover) .video-title,
+.video-feed-item:has(.video-thumbnail-link:focus-visible) .video-title,
 .video-title:hover,
 .video-title:focus-visible {
     text-decoration: underline;
