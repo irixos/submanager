@@ -19,7 +19,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddTransient<CookieCredentialsHandler>();
 builder.Services.AddHttpClient("Api", client =>
     {
-        client.BaseAddress = new Uri("https://localhost:7208");
+        client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     })
     .AddHttpMessageHandler<CookieCredentialsHandler>();
 

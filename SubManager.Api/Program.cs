@@ -18,17 +18,6 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("BlazorClient", policy =>
-    {
-        policy.WithOrigins("https://localhost:7122")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = ctx =>
@@ -58,7 +47,6 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseHttpsRedirection();
-app.UseCors("BlazorClient");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
@@ -94,6 +82,9 @@ app.MapGroup("/videos")
     .WithTags("Videos")
     .RequireAuthorization()
     .MapVideosApi();
+
+app.MapStaticAssets();
+app.MapFallbackToFile("index.html");
 
 app.Run();
 
