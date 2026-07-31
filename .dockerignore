@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.git/
+.idea/
+.testagent/
+.tmp/
+.worktrees/
+.env
+*.user
+*.suo

@@ -7,14 +7,11 @@
     <RootNamespace>Submanager.ApiClient</RootNamespace>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="NSwag.MSBuild" Version="14.7.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
+      <Publish>false</Publish>
     </PackageReference>
   </ItemGroup>
 

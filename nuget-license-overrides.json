@@ -1,0 +1,20 @@
+[
+  {
+    "Id": "Gridify",
+    "Version": "2.19.1",
+    "License": "MIT",
+    "Copyright": "Copyright (c) 2020 Alireza"
+  },
+  {
+    "Id": "Gridify.EntityFramework",
+    "Version": "2.19.1",
+    "License": "MIT",
+    "Copyright": "Copyright (c) 2020 Alireza"
+  },
+  {
+    "Id": "Scalar.AspNetCore",
+    "Version": "2.14.14",
+    "License": "MIT",
+    "Copyright": "Copyright (c) 2023-present Scalar"
+  }
+]
