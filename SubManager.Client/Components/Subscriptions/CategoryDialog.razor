@@ -5,7 +5,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudForm @ref="form" @bind-IsValid="isValid">
+        <MudForm @ref="form" @bind-IsValid="isValid" OnEnterPressed="Save">
             <MudStack Spacing="3">
                 <MudTextField @bind-Value="name"
                               Label="Category name"
