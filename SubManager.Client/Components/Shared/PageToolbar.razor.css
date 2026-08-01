@@ -1,6 +1,36 @@
 .page-toolbar {
     background-color: var(--mud-palette-surface);
+    margin-inline: -16px;
     position: sticky;
-    top: 64px;
+    top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 8);
     z-index: 5;
+}
+
+@media (orientation: landscape) and (max-width: 599px) {
+    .page-toolbar {
+        top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 4);
+    }
+}
+
+@media (max-width: 599px) {
+    .page-toolbar {
+        transform: translateY(var(--page-toolbar-offset, 0));
+        will-change: transform;
+    }
+
+    .page-toolbar.page-toolbar-settling {
+        transition: transform 150ms ease-out;
+    }
+}
+
+@media (min-width: 600px) {
+    .page-toolbar {
+        top: var(--mud-appbar-height);
+    }
+}
+
+@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+    .page-toolbar.page-toolbar-settling {
+        transition: none;
+    }
 }

@@ -1,4 +1,7 @@
-<div class="page-toolbar">
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div @ref="toolbarElement" class="page-toolbar">
     <MudPaper Square="true" Elevation="1" Class="pa-2 mb-3">
         <MudStack Spacing="2">
             <MudStack Row="true" AlignItems="AlignItems.Center">
@@ -11,9 +14,27 @@
 </div>
 
 @code {
+    private ElementReference toolbarElement;
+    private PageToolbarInterop? interop;
+
     [Parameter, EditorRequired]
     public RenderFragment Actions { get; set; } = null!;
 
     [Parameter]
     public RenderFragment? ExpandedContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        interop = new PageToolbarInterop(JS);
+        await interop.InitializeAsync(toolbarElement);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (interop is not null)
+            await interop.DisposeAsync();
+    }
 }
