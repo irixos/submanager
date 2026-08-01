@@ -54,8 +54,8 @@ public partial class Feed
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFilterOptions();
         ApplyInitialChannelFilter();
+        await LoadFilterOptions();
         await FetchVideos();
         initialized = true;
     }
