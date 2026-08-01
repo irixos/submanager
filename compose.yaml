@@ -1,8 +1,6 @@
 services:
   submanager:
-    image: "${SUBMANAGER_IMAGE:-submanager:local}"
-    build:
-      context: .
+    image: "${SUBMANAGER_IMAGE:-ghcr.io/irixos/submanager:latest}"
     # Remove or comment out the ports section when enabling Caddy below so the app is only reachable through the proxy.
     ports:
       - "${SUBMANAGER_PORT:-8080}:8080"
@@ -18,7 +16,7 @@ services:
     restart: unless-stopped
 
   migrate:
-    image: "${SUBMANAGER_IMAGE:-submanager:local}"
+    image: "${SUBMANAGER_IMAGE:-ghcr.io/irixos/submanager:latest}"
     entrypoint: ["./efbundle"]
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
