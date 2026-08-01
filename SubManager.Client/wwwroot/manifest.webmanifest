@@ -1,6 +1,6 @@
 {
-  "name": "SubManager.Client",
-  "short_name": "SubManager.Client",
+  "name": "SubManager",
+  "short_name": "SubManager",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
