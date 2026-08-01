@@ -1,0 +1,12 @@
+services:
+  submanager:
+    image: submanager:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  migrate:
+    image: submanager:local
+    build:
+      context: .
+      dockerfile: Dockerfile
