@@ -92,7 +92,7 @@
 }
 
 .video-feed-item:hover .restore-watched,
-.video-feed-item:focus-within .restore-watched {
+.restore-watched:focus-within {
     opacity: 1;
 }
 
