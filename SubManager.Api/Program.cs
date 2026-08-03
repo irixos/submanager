@@ -1,5 +1,8 @@
+using System.Threading.RateLimiting;
 using Gridify;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using SubManager.Api.Application;
@@ -29,6 +32,30 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddValidation();
 builder.Services.AddHttpClient();
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var path = context.Request.Path.Value?.TrimEnd('/').ToLowerInvariant();
+        var isPasswordRecovery = HttpMethods.IsPost(context.Request.Method) &&
+            path is "/forgotpassword" or "/resetpassword";
+
+        if (!isPasswordRecovery)
+            return RateLimitPartition.GetNoLimiter("unlimited");
+
+        var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"password-recovery:{path}:{address}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+});
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -46,7 +73,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseRateLimiter();
 app.UseAuthentication();
+app.UseValidUserAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 

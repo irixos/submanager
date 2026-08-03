@@ -12,10 +12,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Identity;
 using SubManager.Api.Application.Features.Channels.Models;
 using SubManager.Api.Application.Features.Videos.Models;
 using SubManager.Api.Application.Interfaces;
 using SubManager.Api.Infrastructure;
+using SubManager.Api.Infrastructure.Identity;
 
 namespace SubManager.Api.Tests.Infrastructure;
 
@@ -24,11 +26,15 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     private const string TestAuthenticationScheme = "Test";
     private const string TestUserHeader = "X-Test-User";
     private readonly SqliteConnection connection = new("Data Source=:memory:");
+    private readonly bool useTestAuthentication;
 
-    public ApiWebApplicationFactory()
+    public ApiWebApplicationFactory(bool useTestAuthentication = true)
     {
+        this.useTestAuthentication = useTestAuthentication;
         connection.Open();
     }
+
+    public CapturingEmailSender EmailSender { get; } = new();
 
     public HttpClient CreateHttpsClient()
     {
@@ -70,18 +76,47 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
                     .UseSqlite(connection)
                     .ReplaceService<IModelCustomizer, SqliteTestModelCustomizer>());
 
-            services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = TestAuthenticationScheme;
-                    options.DefaultChallengeScheme = TestAuthenticationScheme;
-                })
-                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                    TestAuthenticationScheme,
-                    _ => { });
+            if (useTestAuthentication)
+            {
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = TestAuthenticationScheme;
+                        options.DefaultChallengeScheme = TestAuthenticationScheme;
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                        TestAuthenticationScheme,
+                        _ => { });
+            }
 
             services.RemoveAll<IYoutubeMetadataProvider>();
             services.AddSingleton<IYoutubeMetadataProvider, StubYoutubeMetadataProvider>();
+            services.RemoveAll<IEmailSender<ApplicationUser>>();
+            services.AddSingleton<IEmailSender<ApplicationUser>>(EmailSender);
         });
+    }
+
+    internal sealed class CapturingEmailSender : IEmailSender<ApplicationUser>
+    {
+        public string? PasswordResetCode { get; private set; }
+
+        public Task SendConfirmationLinkAsync(
+            ApplicationUser user,
+            string email,
+            string confirmationLink) => Task.CompletedTask;
+
+        public Task SendPasswordResetLinkAsync(
+            ApplicationUser user,
+            string email,
+            string resetLink) => Task.CompletedTask;
+
+        public Task SendPasswordResetCodeAsync(
+            ApplicationUser user,
+            string email,
+            string resetCode)
+        {
+            PasswordResetCode = resetCode;
+            return Task.CompletedTask;
+        }
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -101,20 +136,37 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     private sealed class TestAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
-        UrlEncoder encoder)
+        UrlEncoder encoder,
+        ApplicationDbContext db)
         : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
     {
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             if (!Request.Headers.ContainsKey(TestUserHeader))
-                return Task.FromResult(AuthenticateResult.NoResult());
+                return AuthenticateResult.NoResult();
+
+            var user = await db.Users.FindAsync("integration-test-user");
+            if (user is null)
+            {
+                user = new ApplicationUser
+                {
+                    Id = "integration-test-user",
+                    Email = "integration-test@example.com",
+                    UserName = "integration-test@example.com",
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+                db.Users.Add(user);
+                await db.SaveChangesAsync();
+            }
 
             var identity = new ClaimsIdentity(
-                [new Claim(ClaimTypes.NameIdentifier, "integration-test-user")],
+                [
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim("AspNet.Identity.SecurityStamp", user.SecurityStamp!)
+                ],
                 Scheme.Name);
             var principal = new ClaimsPrincipal(identity);
-            return Task.FromResult(
-                AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name)));
+            return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
         }
     }
 

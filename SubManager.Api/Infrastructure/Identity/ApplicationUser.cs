@@ -4,5 +4,5 @@ namespace SubManager.Api.Infrastructure.Identity;
 
 public sealed class ApplicationUser : IdentityUser
 {
-    
+    public override bool EmailConfirmed { get; set; } = true;
 }

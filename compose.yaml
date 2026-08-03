@@ -10,6 +10,11 @@ services:
       # Enable this only when Caddy is enabled and the direct port mapping above is removed.
       # ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=${SQLSERVER_DATABASE:-SubManager};User ID=sa;Password=${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env};Encrypt=True;TrustServerCertificate=True"
+      Smtp__Host: "${SUBMANAGER_SMTP_HOST:-}"
+      Smtp__Username: "${SUBMANAGER_SMTP_USERNAME:-}"
+      Smtp__Password: "${SUBMANAGER_SMTP_PASSWORD:-}"
+      Smtp__Port: "${SUBMANAGER_SMTP_PORT:-587}"
+      Smtp__FromAddress: "${SUBMANAGER_SMTP_FROM_ADDRESS:-}"
     depends_on:
       migrate:
         condition: service_completed_successfully

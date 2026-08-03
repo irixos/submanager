@@ -2,6 +2,7 @@
 using SubManager.Api.Application.Features.Categories.Services;
 using SubManager.Api.Application.Features.Channels.Interfaces;
 using SubManager.Api.Application.Features.Channels.Services;
+using SubManager.Api.Application.Features.Identity.Services;
 using SubManager.Api.Application.Features.Videos.Interfaces;
 using SubManager.Api.Application.Features.Videos.Services;
 
@@ -17,6 +18,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IVideoService, VideoService>();
         services.AddScoped<IVideoRefreshService, VideoRefreshService>();
         services.AddScoped<IYoutubeVideoIngestService, YoutubeVideoIngestService>();
+        services.AddScoped<AccountService>();
         
         return services;
     }
