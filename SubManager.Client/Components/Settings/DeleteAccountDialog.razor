@@ -1,0 +1,94 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject IdentityClient IdentityClient
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                Deleting your account permanently deletes all subscriptions, categories, and feed videos. This cannot be undone.
+            </MudAlert>
+            <MudForm @ref="form" @bind-IsValid="isValid" OnEnterPressed="Delete">
+                <MudTextField @bind-Value="password"
+                              Label="Password"
+                              HelperText="Enter your password to confirm account deletion"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Required="true"
+                              RequiredError="Enter your password"
+                              AutoFocus="true" />
+            </MudForm>
+            @if (error is not null)
+            {
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="isDeleting">Cancel</MudButton>
+        <MudButton Color="Color.Error"
+                   Variant="Variant.Filled"
+                   OnClick="Delete"
+                   Disabled="@(!isValid || isDeleting)">
+            @(isDeleting ? "Deleting…" : "Delete account")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private MudForm? form;
+    private string password = string.Empty;
+    private bool isValid;
+    private bool isDeleting;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Delete()
+    {
+        await form!.ValidateAsync();
+        if (!isValid || isDeleting)
+            return;
+
+        isDeleting = true;
+        error = null;
+
+        try
+        {
+            await IdentityClient.DeleteAccountAsync(new DeleteAccountRequest
+            {
+                Password = password
+            }, cancellationTokenSource.Token);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (ApiException<HttpValidationProblemDetails> exception)
+        {
+            error = exception.Result.Errors is null
+                ? "Unable to delete the account."
+                : string.Join(" ", exception.Result.Errors.Values.SelectMany(messages => messages));
+        }
+        catch (ApiException)
+        {
+            error = "Unable to delete the account. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

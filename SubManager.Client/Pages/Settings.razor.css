@@ -1,0 +1,27 @@
+.settings-page {
+    min-height: calc(100dvh - 96px);
+    width: 100%;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding-top: 1.5rem;
+}
+
+.settings-card {
+    padding: 2rem;
+}
+
+.danger-zone {
+    margin-top: auto;
+    border: 1px solid var(--mud-palette-error);
+    border-radius: var(--mud-default-borderradius);
+}
+
+@media (max-width: 600px) {
+    .settings-page {
+        padding-top: 1rem;
+    }
+
+    .settings-card {
+        padding: 1.25rem;
+    }
+}

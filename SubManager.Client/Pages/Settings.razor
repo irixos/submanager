@@ -1,0 +1,174 @@
+@page "/settings"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@using SubManager.Client.Authentication
+@using SubManager.Client.Components.Settings
+@inject IdentityClient IdentityClient
+@inject ApiAuthenticationStateProvider AuthenticationStateProvider
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings</PageTitle>
+
+<div class="settings-page">
+    <MudStack Spacing="4">
+        <MudPaper Elevation="1">
+            <div class="settings-card">
+                <MudText Typo="Typo.h5" GutterBottom="true">Account</MudText>
+                @if (isLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else
+                {
+                    <MudStack Spacing="4">
+                        @if (loadError is not null)
+                        {
+                            <MudAlert Severity="Severity.Error">@loadError</MudAlert>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                                <MudText Typo="Typo.subtitle1">Login email</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Current: @currentEmail</MudText>
+                                <MudButton Color="Color.Primary"
+                                           Variant="Variant.Filled"
+                                           StartIcon="@Icons.Material.Filled.AlternateEmail"
+                                           OnClick="OpenChangeEmailDialog">
+                                    Change login email
+                                </MudButton>
+                            </MudStack>
+                        }
+
+                        <MudDivider />
+
+                        <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                            <MudText Typo="Typo.subtitle1">Password</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Change your password and sign in again.</MudText>
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       StartIcon="@Icons.Material.Filled.Password"
+                                       OnClick="OpenChangePasswordDialog">
+                                Change password
+                            </MudButton>
+                        </MudStack>
+                    </MudStack>
+                }
+            </div>
+        </MudPaper>
+
+        <div class="danger-zone">
+            <MudPaper Elevation="1">
+                <div class="settings-card">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudText Typo="Typo.h6" Color="Color.Error">Danger zone</MudText>
+                        <MudText Typo="Typo.body2">
+                            Permanently delete your account, subscriptions, categories, and feed videos.
+                        </MudText>
+                        <MudButton Color="Color.Error"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.DeleteForever"
+                                   OnClick="OpenDeleteAccountDialog">
+                            Delete account
+                        </MudButton>
+                    </MudStack>
+                </div>
+            </MudPaper>
+        </div>
+    </MudStack>
+</div>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private string currentEmail = string.Empty;
+    private string? loadError;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var info = await IdentityClient.InfoGETAsync(cancellationTokenSource.Token);
+            currentEmail = info.Email;
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (ApiException)
+        {
+            loadError = "Unable to load account settings.";
+        }
+        catch (HttpRequestException)
+        {
+            loadError = "Unable to reach the server.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenChangeEmailDialog()
+    {
+        var dialog = await DialogService.ShowAsync<ChangeEmailDialog>(
+            "Change login email",
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false });
+        if ((await dialog.Result)?.Data is not string newEmail)
+            return;
+
+        currentEmail = newEmail;
+        await AuthenticationStateProvider.RefreshAsync(cancellationTokenSource.Token);
+        Snackbar.Add("Login email changed.", Severity.Success);
+    }
+
+    private async Task OpenChangePasswordDialog()
+    {
+        var dialog = await DialogService.ShowAsync<ChangePasswordDialog>(
+            "Change password",
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false });
+        if ((await dialog.Result)?.Data is not true)
+            return;
+
+        await Logout();
+    }
+
+    private async Task OpenDeleteAccountDialog()
+    {
+        var dialog = await DialogService.ShowAsync<DeleteAccountDialog>(
+            "Delete account",
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = false });
+        if ((await dialog.Result)?.Data is not true)
+            return;
+
+        AuthenticationStateProvider.MarkAnonymous();
+        NavigationManager.NavigateTo("/login", replace: true);
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            await IdentityClient.LogoutAsync(cancellationTokenSource.Token);
+        }
+        catch (ApiException)
+        {
+        }
+        catch (HttpRequestException)
+        {
+        }
+        finally
+        {
+            AuthenticationStateProvider.MarkAnonymous();
+            NavigationManager.NavigateTo("/login", replace: true);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

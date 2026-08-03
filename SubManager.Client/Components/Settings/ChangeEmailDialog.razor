@@ -1,0 +1,123 @@
+@implements IAsyncDisposable
+@using SubManager.ApiClient
+@inject IdentityClient IdentityClient
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isValid" OnEnterPressed="Save">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="newEmail"
+                              Label="New login email"
+                              InputType="InputType.Email"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Required="true"
+                              RequiredError="Enter an email address"
+                              Validation="@((Func<string, string?>)ValidateEmail)"
+                              AutoFocus="true" />
+                <MudTextField @bind-Value="confirmedEmail"
+                              Label="Confirm new login email"
+                              InputType="InputType.Email"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Required="true"
+                              RequiredError="Confirm the new email address"
+                              Validation="@((Func<string, string?>)ValidateConfirmation)" />
+                <MudTextField @bind-Value="password"
+                              Label="Current password"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Required="true"
+                              RequiredError="Enter your current password" />
+                @if (error is not null)
+                {
+                    <MudAlert Severity="Severity.Error">@error</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="isSaving">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Save"
+                   Disabled="@(!isValid || !EmailsMatch || isSaving)">
+            @(isSaving ? "Changing…" : "Change login email")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private MudForm? form;
+    private string newEmail = string.Empty;
+    private string confirmedEmail = string.Empty;
+    private string password = string.Empty;
+    private bool isValid;
+    private bool isSaving;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private static string? ValidateEmail(string? value) =>
+        new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(value)
+            ? null
+            : "Enter a valid email address";
+
+    private bool EmailsMatch =>
+        string.Equals(newEmail.Trim(), confirmedEmail.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private string? ValidateConfirmation(string? value) =>
+        string.Equals(newEmail.Trim(), value?.Trim(), StringComparison.OrdinalIgnoreCase)
+            ? null
+            : "Email addresses do not match";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        await form!.ValidateAsync();
+        if (!isValid || !EmailsMatch || isSaving)
+            return;
+
+        isSaving = true;
+        error = null;
+
+        try
+        {
+            var trimmedEmail = newEmail.Trim();
+            await IdentityClient.ChangeEmailAsync(new ChangeEmailRequest
+            {
+                NewEmail = trimmedEmail,
+                Password = password
+            }, cancellationTokenSource.Token);
+            MudDialog.Close(DialogResult.Ok(trimmedEmail));
+        }
+        catch (ApiException<HttpValidationProblemDetails> exception)
+        {
+            error = exception.Result.Errors is null
+                ? "Unable to change the login email."
+                : string.Join(" ", exception.Result.Errors.Values.SelectMany(messages => messages));
+        }
+        catch (ApiException)
+        {
+            error = "Unable to change the login email. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            error = "Unable to reach the server.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await cancellationTokenSource.CancelAsync();
+        cancellationTokenSource.Dispose();
+    }
+}

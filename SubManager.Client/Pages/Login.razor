@@ -33,6 +33,10 @@ else
                           @bind-Value="loginRequest.Password" For="@(() => loginRequest.Password)" />
         </MudCardContent>
         <MudCardActions>
+            @if (canRegister == false && canSendEmail)
+            {
+                <MudButton Href="forgot-password" Variant="Variant.Text">Forgot password?</MudButton>
+            }
             <MudSpacer />
             @if (isLoadingSetup)
             {
@@ -69,6 +73,7 @@ else
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private string? errorMessage;
     private bool? canRegister;
+    private bool canSendEmail;
     private bool isLoadingSetup = true;
     private bool isSubmitting;
     private bool isRetryingAuthentication;
@@ -110,6 +115,7 @@ else
         {
             var status = await IdentityClient.SetupStatusAsync(cancellationTokenSource.Token);
             canRegister = status.CanRegister;
+            canSendEmail = status.CanSendEmail;
         }
         catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
         {
