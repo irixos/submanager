@@ -5,7 +5,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudForm @ref="form" @bind-IsValid="isValid">
+        <MudForm @ref="form" @bind-IsValid="isValid" OnEnterPressed="Create">
             <MudStack Spacing="3">
                 <MudTextField @bind-Value="channelUrl"
                               Label="YouTube channel URL"
